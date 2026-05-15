@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="WeatherWizard.Views.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Background="{ThemeResource AppPageBackgroundBrush}"
+    mc:Ignorable="d">
+    <Grid Background="{ThemeResource AppPageBackgroundBrush}">
+        <TabView
+            x:Name="LocationTabs"
+            Background="{ThemeResource AppPageBackgroundBrush}"
+            IsAddTabButtonVisible="False"
+            TabWidthMode="SizeToContent"
+            VerticalAlignment="Top">
+            <TabView.TabStripFooter>
+                <Button
+                    Margin="0,0,4,0"
+                    Padding="6,2"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    AutomationProperties.Name="Locations"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Click="OnOpenSettings"
+                    Foreground="{ThemeResource AppBodyTextBrush}"
+                    ToolTipService.ToolTip="Locations">
+                    <SymbolIcon Symbol="Setting" />
+                </Button>
+            </TabView.TabStripFooter>
+        </TabView>
+
+        <StackPanel
+            x:Name="EmptyState"
+            Padding="20"
+            HorizontalAlignment="Center"
+            Spacing="12"
+            VerticalAlignment="Center"
+            Visibility="Collapsed">
+            <TextBlock
+                HorizontalAlignment="Center"
+                FontSize="18"
+                Foreground="{ThemeResource AppBodyTextBrush}"
+                Text="No locations yet"
+                TextAlignment="Center" />
+            <TextBlock
+                HorizontalAlignment="Center"
+                Foreground="{ThemeResource AppMutedTextBrush}"
+                Text="Add a city, state, or ZIP in Locations."
+                TextAlignment="Center"
+                TextWrapping="WrapWholeWords" />
+            <Button
+                HorizontalAlignment="Center"
+                Click="OnOpenSettings"
+                Content="Open Locations"
+                Style="{StaticResource PrimaryAction}" />
+        </StackPanel>
+    </Grid>
+</Page>
