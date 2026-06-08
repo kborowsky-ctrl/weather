@@ -7,12 +7,10 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Background="{ThemeResource AppPageBackgroundBrush}"
     mc:Ignorable="d">
-    <Grid Padding="16" Background="{ThemeResource AppPageBackgroundBrush}">
+    <Grid Background="{ThemeResource AppPageBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <CommandBar Grid.Row="0" DefaultLabelPosition="Right">
@@ -22,130 +20,173 @@
                 Label="Back" />
         </CommandBar>
 
-        <StackPanel Grid.Row="1" Spacing="8">
-            <TextBlock
-                FontSize="16"
-                FontWeight="SemiBold"
-                Foreground="{ThemeResource AppBodyTextBrush}"
-                Text="Appearance" />
-            <ToggleSwitch
-                x:Name="DarkModeSwitch"
-                Header="Dark mode (black background, light text)"
-                OffContent="Light"
-                OnContent="Dark"
-                Toggled="OnDarkModeToggled" />
-            <TextBlock
-                FontSize="11"
-                Foreground="{ThemeResource AppMutedTextBrush}"
-                Text="Light mode uses a white background with dark text. Dark mode uses a black background with light text."
-                TextWrapping="WrapWholeWords" />
+        <ScrollViewer
+            Grid.Row="1"
+            Padding="16,0,16,16"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto"
+            ZoomMode="Disabled">
+            <StackPanel Spacing="8">
+                <TextBlock
+                    FontSize="16"
+                    FontWeight="SemiBold"
+                    Foreground="{ThemeResource AppBodyTextBrush}"
+                    Text="Appearance" />
+                <ToggleSwitch
+                    x:Name="DarkModeSwitch"
+                    Header="Dark mode (black background, light text)"
+                    OffContent="Light"
+                    OnContent="Dark"
+                    Toggled="OnDarkModeToggled" />
+                <TextBlock
+                    FontSize="11"
+                    Foreground="{ThemeResource AppMutedTextBrush}"
+                    Text="Light mode uses a white background with dark text. Dark mode uses a black background with light text."
+                    TextWrapping="WrapWholeWords" />
 
-            <TextBlock
-                Margin="0,12,0,0"
-                FontSize="16"
-                FontWeight="SemiBold"
-                Foreground="{ThemeResource AppBodyTextBrush}"
-                Text="Window" />
-            <ComboBox
-                x:Name="WindowPlacementBox"
-                Header="Position when the app starts"
-                SelectionChanged="OnWindowPlacementChanged">
-                <ComboBoxItem Tag="RememberLast" Content="Remember last position and size" />
-                <ComboBoxItem Tag="Center" Content="Center on screen" />
-                <ComboBoxItem Tag="TopLeft" Content="Top left of work area" />
-                <ComboBoxItem Tag="TopRight" Content="Top right of work area" />
-                <ComboBoxItem Tag="BottomLeft" Content="Bottom left of work area" />
-                <ComboBoxItem Tag="BottomRight" Content="Bottom right of work area" />
-                <ComboBoxItem Tag="Left" Content="Left side (vertically centered)" />
-                <ComboBoxItem Tag="Right" Content="Right side (vertically centered)" />
-            </ComboBox>
-            <TextBlock
-                FontSize="11"
-                Foreground="{ThemeResource AppMutedTextBrush}"
-                Text="“Remember last” saves the window spot when you close the app; width and height are always saved for the next launch. Other options only set the corner or center using that size."
-                TextWrapping="WrapWholeWords" />
+                <TextBlock
+                    Margin="0,12,0,0"
+                    FontSize="16"
+                    FontWeight="SemiBold"
+                    Foreground="{ThemeResource AppBodyTextBrush}"
+                    Text="Window" />
+                <ComboBox
+                    x:Name="WindowPlacementBox"
+                    Header="Position when the app starts"
+                    SelectionChanged="OnWindowPlacementChanged">
+                    <ComboBoxItem Tag="RememberLast" Content="Remember last position and size" />
+                    <ComboBoxItem Tag="Center" Content="Center on screen" />
+                    <ComboBoxItem Tag="TopLeft" Content="Top left of work area" />
+                    <ComboBoxItem Tag="TopRight" Content="Top right of work area" />
+                    <ComboBoxItem Tag="BottomLeft" Content="Bottom left of work area" />
+                    <ComboBoxItem Tag="BottomRight" Content="Bottom right of work area" />
+                    <ComboBoxItem Tag="Left" Content="Left side (vertically centered)" />
+                    <ComboBoxItem Tag="Right" Content="Right side (vertically centered)" />
+                </ComboBox>
+                <TextBlock
+                    FontSize="11"
+                    Foreground="{ThemeResource AppMutedTextBrush}"
+                    Text="“Remember last” saves the window spot when you close the app; width and height are always saved for the next launch. Other options only set the corner or center using that size."
+                    TextWrapping="WrapWholeWords" />
 
-            <Border
-                Margin="0,8,0,0"
-                Padding="0,12,0,0"
-                BorderBrush="{ThemeResource AppSectionBorderBrush}"
-                BorderThickness="0,1,0,0">
-                <StackPanel Spacing="8">
-                    <TextBlock
-                        FontSize="18"
-                        FontWeight="SemiBold"
-                        Foreground="{ThemeResource AppBodyTextBrush}"
-                        Text="Locations" />
-                    <TextBlock
-                        FontSize="11"
-                        Foreground="{ThemeResource AppMutedTextBrush}"
-                        Text="Locations are saved automatically when you add, remove, or reorder. Use Remove to delete a saved location."
-                        TextWrapping="WrapWholeWords" />
-                    <NumberBox
-                        x:Name="RefreshMinutesBox"
-                        Header="Refresh interval (minutes)"
-                        Minimum="5"
-                        Maximum="120"
-                        SpinButtonPlacementMode="Inline"
-                        ValueChanged="OnRefreshMinutesChanged" />
+                <Border
+                    Margin="0,8,0,0"
+                    Padding="0,12,0,0"
+                    BorderBrush="{ThemeResource AppSectionBorderBrush}"
+                    BorderThickness="0,1,0,0">
+                    <StackPanel Spacing="8">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource AppBodyTextBrush}"
+                            Text="NWS radar" />
+                        <NumberBox
+                            x:Name="RadarFlipSecondsBox"
+                            Header="Flip interval (seconds)"
+                            Minimum="3"
+                            Maximum="120"
+                            SpinButtonPlacementMode="Inline"
+                            ValueChanged="OnRadarFlipSecondsChanged" />
+                        <TextBlock
+                            FontSize="11"
+                            Foreground="{ThemeResource AppMutedTextBrush}"
+                            Text="The radar alternates between the regional view, local zoom, and any custom images below."
+                            TextWrapping="WrapWholeWords" />
+                        <TextBlock
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource AppBodyTextBrush}"
+                            Text="Custom image URLs (up to 5)" />
+                        <TextBlock
+                            FontSize="11"
+                            Foreground="{ThemeResource AppMutedTextBrush}"
+                            Text="Direct links to GIF, PNG, or JPG images. The full image is shown (not cropped). NWS zoom still applies to built-in radar views."
+                            TextWrapping="WrapWholeWords" />
+                        <TextBox x:Name="CustomRadarUrl1" Header="Image 1" PlaceholderText="https://example.com/radar.gif" />
+                        <TextBox x:Name="CustomRadarUrl2" Header="Image 2" PlaceholderText="Optional" />
+                        <TextBox x:Name="CustomRadarUrl3" Header="Image 3" PlaceholderText="Optional" />
+                        <TextBox x:Name="CustomRadarUrl4" Header="Image 4" PlaceholderText="Optional" />
+                        <TextBox x:Name="CustomRadarUrl5" Header="Image 5" PlaceholderText="Optional" />
+                    </StackPanel>
+                </Border>
+
+                <Border
+                    Margin="0,8,0,0"
+                    Padding="0,12,0,0"
+                    BorderBrush="{ThemeResource AppSectionBorderBrush}"
+                    BorderThickness="0,1,0,0">
+                    <StackPanel Spacing="8">
+                        <TextBlock
+                            FontSize="18"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource AppBodyTextBrush}"
+                            Text="Locations" />
+                        <TextBlock
+                            FontSize="11"
+                            Foreground="{ThemeResource AppMutedTextBrush}"
+                            Text="Locations are saved automatically when you add, remove, or reorder. Use Remove to delete a saved location."
+                            TextWrapping="WrapWholeWords" />
+                        <NumberBox
+                            x:Name="RefreshMinutesBox"
+                            Header="Refresh interval (minutes)"
+                            Minimum="5"
+                            Maximum="120"
+                            SpinButtonPlacementMode="Inline"
+                            ValueChanged="OnRefreshMinutesChanged" />
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Margin="0,8,0,0" Spacing="8">
+                    <TextBox x:Name="CityBox" Header="City" PlaceholderText="e.g. Austin" />
+                    <TextBox x:Name="StateBox" Header="State / region (optional)" PlaceholderText="e.g. TX" />
+                    <TextBox x:Name="ZipBox" Header="ZIP (optional)" PlaceholderText="e.g. 78701" />
+                    <Button Click="OnSearchLocations" Content="Search &amp; add" />
                 </StackPanel>
-            </Border>
-        </StackPanel>
 
-        <Grid Grid.Row="2">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
+                <ListView
+                    x:Name="LocationsList"
+                    Margin="0,4,0,0"
+                    ScrollViewer.HorizontalScrollMode="Disabled"
+                    ScrollViewer.VerticalScrollMode="Disabled"
+                    SelectionMode="Single">
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="models:SavedLocation" xmlns:models="using:WeatherWizard.Models">
+                            <Grid Padding="4" ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    Grid.Column="0"
+                                    VerticalAlignment="Center"
+                                    Foreground="{ThemeResource AppBodyTextBrush}"
+                                    Text="{x:Bind TabLabel}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <Button
+                                    Grid.Column="1"
+                                    Click="OnMoveUp"
+                                    Content="Up" />
+                                <Button
+                                    Grid.Column="2"
+                                    Click="OnMoveDown"
+                                    Content="Down" />
+                                <Button
+                                    Grid.Column="3"
+                                    Click="OnRemove"
+                                    Content="Remove" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
 
-            <StackPanel Grid.Row="0" Spacing="8">
-                <TextBox x:Name="CityBox" Header="City" PlaceholderText="e.g. Austin" />
-                <TextBox x:Name="StateBox" Header="State / region (optional)" PlaceholderText="e.g. TX" />
-                <TextBox x:Name="ZipBox" Header="ZIP (optional)" PlaceholderText="e.g. 78701" />
-                <Button Click="OnSearchLocations" Content="Search &amp; add" />
+                <TextBlock
+                    x:Name="StatusText"
+                    Margin="0,8,0,0"
+                    Foreground="{ThemeResource AppMutedTextBrush}"
+                    TextWrapping="WrapWholeWords" />
             </StackPanel>
-
-            <ListView
-                x:Name="LocationsList"
-                Grid.Row="1"
-                SelectionMode="Single">
-                <ListView.ItemTemplate>
-                    <DataTemplate x:DataType="models:SavedLocation" xmlns:models="using:WeatherWizard.Models">
-                        <Grid Padding="4" ColumnSpacing="8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock
-                                Grid.Column="0"
-                                VerticalAlignment="Center"
-                                Foreground="{ThemeResource AppBodyTextBrush}"
-                                Text="{x:Bind TabLabel}"
-                                TextTrimming="CharacterEllipsis" />
-                            <Button
-                                Grid.Column="1"
-                                Click="OnMoveUp"
-                                Content="Up" />
-                            <Button
-                                Grid.Column="2"
-                                Click="OnMoveDown"
-                                Content="Down" />
-                            <Button
-                                Grid.Column="3"
-                                Click="OnRemove"
-                                Content="Remove" />
-                        </Grid>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
-        </Grid>
-
-        <TextBlock
-            Grid.Row="3"
-            x:Name="StatusText"
-            Foreground="{ThemeResource AppMutedTextBrush}"
-            TextWrapping="WrapWholeWords" />
+        </ScrollViewer>
     </Grid>
 </Page>

@@ -32,6 +32,9 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
+# Local distribution builds (see scripts/Publish-Release.ps1)
+dist/
+
 # User / local
 *.local.json
 appsettings.Development.json

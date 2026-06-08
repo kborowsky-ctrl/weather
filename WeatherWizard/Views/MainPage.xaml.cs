@@ -135,6 +135,8 @@ public sealed partial class MainPage : Page
             if (!_viewModels.TryGetValue(loc.Id, out var vm))
                 continue;
 
+            var isFirstLocation = ReferenceEquals(loc, locations[0]);
+
             try
             {
                 var bundle = await app.Forecast.GetForecastAsync(loc.Latitude, loc.Longitude).ConfigureAwait(true);
@@ -162,6 +164,9 @@ public sealed partial class MainPage : Page
                 }
 
                 vm.CurrentConditions = bundle.Current;
+                if (isFirstLocation)
+                    App.Current.UpdateTrayWeatherIcon(bundle.Current.WeatherCode, bundle.Current.ConditionEmoji);
+
                 vm.ForecastDays.Clear();
                 foreach (var d in listDays)
                     vm.ForecastDays.Add(d);

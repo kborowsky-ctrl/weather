@@ -16,6 +16,10 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>WeatherWizard</RootNamespace>
 
+        <Version>1.0.0</Version>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
+        <FileVersion>1.0.0.0</FileVersion>
+
         <!-- App Options -->
         <UseRidGraph>true</UseRidGraph>
         <Platforms>x86;x64;ARM64</Platforms>
@@ -41,6 +45,7 @@
 
     <ItemGroup>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.*" />
+        <PackageReference Include="System.Drawing.Common" Version="8.*" />
         <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.*" />
         <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.*" />
 

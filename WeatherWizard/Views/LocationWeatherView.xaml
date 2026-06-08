@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:views="using:WeatherWizard.Views"
     d:DesignHeight="800"
     d:DesignWidth="420"
     VerticalAlignment="Top"
@@ -83,13 +84,25 @@
                             Foreground="{ThemeResource AppBodyTextBrush}"
                             Text="{Binding CurrentConditions.Row2Right}"
                             TextWrapping="WrapWholeWords" />
-                        <TextBlock
+
+                        <StackPanel
                             Grid.Row="1"
                             Grid.Column="2"
-                            FontSize="11"
-                            Foreground="{ThemeResource AppBodyTextBrush}"
-                            Text="{Binding CurrentConditions.Row3Left}"
-                            TextWrapping="WrapWholeWords" />
+                            VerticalAlignment="Center"
+                            Orientation="Horizontal"
+                            Spacing="2">
+                            <TextBlock
+                                x:Name="PressureArrowBlock"
+                                FontSize="11"
+                                Foreground="{ThemeResource AppBodyTextBrush}"
+                                Text="{Binding CurrentConditions.PressureArrow}" />
+                            <TextBlock
+                                FontSize="11"
+                                Foreground="{ThemeResource AppBodyTextBrush}"
+                                Text="{Binding CurrentConditions.Row3Left}"
+                                TextWrapping="WrapWholeWords" />
+                        </StackPanel>
+
                         <TextBlock
                             Grid.Row="1"
                             Grid.Column="3"
@@ -116,10 +129,16 @@
                         <TextBlock
                             Grid.Row="3"
                             Grid.Column="1"
-                            Grid.ColumnSpan="3"
                             FontSize="11"
                             Foreground="{ThemeResource AppBodyTextBrush}"
-                            Text="{Binding CurrentConditions.Row5SunLine}"
+                            Text="{Binding CurrentConditions.Row5Left}"
+                            TextWrapping="WrapWholeWords" />
+                        <TextBlock
+                            Grid.Row="3"
+                            Grid.Column="2"
+                            FontSize="11"
+                            Foreground="{ThemeResource AppBodyTextBrush}"
+                            Text="{Binding CurrentConditions.Row5Right}"
                             TextWrapping="WrapWholeWords" />
                     </Grid>
                 </StackPanel>
@@ -175,28 +194,28 @@
                         Foreground="{ThemeResource AppBodyTextBrush}"
                         Text="Forecast" />
 
-                    <Grid HorizontalAlignment="Stretch" ColumnSpacing="4">
+                    <Grid HorizontalAlignment="Stretch">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" MinWidth="56" />
-                            <ColumnDefinition Width="32" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" MinWidth="34" />
-                        </Grid.ColumnDefinitions>
+
+                        <Grid Grid.Row="0" ColumnSpacing="4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="72" />
+                                <ColumnDefinition Width="36" />
+                            </Grid.ColumnDefinitions>
 
                         <TextBlock
-                            Grid.Row="0"
                             Grid.Column="0"
                             FontSize="9"
                             FontWeight="SemiBold"
                             Foreground="{ThemeResource AppMutedTextBrush}"
                             Text="Period" />
                         <TextBlock
-                            Grid.Row="0"
                             Grid.Column="1"
                             HorizontalAlignment="Center"
                             FontSize="9"
@@ -204,33 +223,28 @@
                             Foreground="{ThemeResource AppMutedTextBrush}"
                             Text="Wx" />
                         <TextBlock
-                            Grid.Row="0"
                             Grid.Column="2"
+                            Margin="8,0,0,0"
                             FontSize="9"
                             FontWeight="SemiBold"
                             Foreground="{ThemeResource AppMutedTextBrush}"
                             Text="Weather" />
                         <TextBlock
-                            Grid.Row="0"
                             Grid.Column="3"
                             FontSize="9"
                             FontWeight="SemiBold"
                             Foreground="{ThemeResource AppMutedTextBrush}"
                             Text="H/L" />
                         <TextBlock
-                            Grid.Row="0"
                             Grid.Column="4"
                             HorizontalAlignment="Right"
                             FontSize="9"
                             FontWeight="SemiBold"
                             Foreground="{ThemeResource AppMutedTextBrush}"
                             Text="%" />
+                        </Grid>
 
-                        <ItemsControl
-                            Grid.Row="1"
-                            Grid.Column="0"
-                            Grid.ColumnSpan="5"
-                            ItemsSource="{Binding ForecastDays}">
+                        <ItemsControl Grid.Row="1" ItemsSource="{Binding ForecastDays}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Grid
@@ -239,11 +253,11 @@
                                         BorderBrush="{ThemeResource AppSectionBorderBrush}"
                                         BorderThickness="0,0,0,1">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" MinWidth="56" />
+                                            <ColumnDefinition Width="80" />
                                             <ColumnDefinition Width="32" />
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" MinWidth="34" />
+                                            <ColumnDefinition Width="72" />
+                                            <ColumnDefinition Width="36" />
                                         </Grid.ColumnDefinitions>
 
                                         <StackPanel Grid.Column="0" Spacing="0">
@@ -267,14 +281,11 @@
                                             FontSize="22"
                                             Text="{Binding ConditionEmoji}" />
 
-                                        <TextBlock
+                                        <views:AdaptiveForecastConditionsTextBlock
                                             Grid.Column="2"
-                                            FontSize="11"
-                                            Foreground="{ThemeResource AppBodyTextBrush}"
-                                            MaxLines="2"
-                                            Text="{Binding ConditionsDisplay}"
-                                            TextTrimming="CharacterEllipsis"
-                                            TextWrapping="WrapWholeWords"
+                                            Margin="8,0,0,0"
+                                            FullText="{Binding ConditionsDisplay}"
+                                            WeatherCode="{Binding WeatherCode}"
                                             VerticalAlignment="Center" />
 
                                         <TextBlock
@@ -311,11 +322,24 @@
                 BorderThickness="1"
                 CornerRadius="6">
                 <StackPanel Spacing="4">
-                    <TextBlock
-                        FontSize="11"
-                        FontWeight="SemiBold"
-                        Foreground="{ThemeResource AppBodyTextBrush}"
-                        Text="NWS radar" />
+                    <Grid ColumnSpacing="6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock
+                            FontSize="11"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource AppBodyTextBrush}"
+                            Text="NWS radar" />
+                        <TextBlock
+                            x:Name="RadarViewHint"
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            FontSize="9"
+                            Foreground="{ThemeResource AppMutedTextBrush}"
+                            Text="Regional view" />
+                    </Grid>
 
                     <Border
                         x:Name="RadarImageHost"
@@ -329,9 +353,9 @@
                         <Grid>
                             <Image
                                 x:Name="MapRasterImage"
-                                HorizontalAlignment="Stretch"
-                                VerticalAlignment="Stretch"
-                                Stretch="UniformToFill"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Stretch="Uniform"
                                 Visibility="Collapsed" />
                             <TextBlock
                                 x:Name="RadarPlaceholder"
@@ -340,31 +364,40 @@
                                 VerticalAlignment="Center"
                                 FontSize="11"
                                 Foreground="{ThemeResource AppMutedTextBrush}"
-                                Text="Radar is available for U.S. locations after the site id loads from weather.gov."
+                                Text="Radar is available for U.S. locations after the site id loads, or add custom image URLs in Settings."
                                 TextAlignment="Center"
                                 TextWrapping="WrapWholeWords"
                                 Visibility="Visible" />
                         </Grid>
                     </Border>
 
-                    <StackPanel
-                        Padding="0,2,0,0"
-                        Orientation="Horizontal"
-                        Spacing="10">
+                    <Grid Padding="0,2,0,0" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                FontSize="10"
+                                Foreground="{ThemeResource AppMutedTextBrush}"
+                                Text="{Binding LastUpdatedText}" />
+                            <HyperlinkButton
+                                MinHeight="0"
+                                Padding="0"
+                                VerticalAlignment="Center"
+                                Click="RefreshLink_Click"
+                                Content="Refresh"
+                                FontSize="10"
+                                Foreground="{ThemeResource AppBodyTextBrush}" />
+                        </StackPanel>
                         <TextBlock
+                            Grid.Column="1"
                             VerticalAlignment="Center"
                             FontSize="10"
                             Foreground="{ThemeResource AppMutedTextBrush}"
-                            Text="{Binding LastUpdatedText}" />
-                        <HyperlinkButton
-                            MinHeight="0"
-                            Padding="0"
-                            VerticalAlignment="Center"
-                            Click="RefreshLink_Click"
-                            Content="Refresh"
-                            FontSize="10"
-                            Foreground="{ThemeResource AppBodyTextBrush}" />
-                    </StackPanel>
+                            Text="{x:Bind VersionDisplay, Mode=OneTime}" />
+                    </Grid>
                 </StackPanel>
             </Border>
 

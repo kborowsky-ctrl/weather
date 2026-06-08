@@ -13,11 +13,17 @@ public sealed partial class SettingsPage : Page
     private bool _suppressRefreshMinutesEvents;
     private bool _suppressDarkModeEvents;
     private bool _suppressWindowPlacementEvents;
+    private bool _suppressRadarFlipSecondsEvents;
+    private bool _suppressCustomRadarUrlEvents;
+    private readonly TextBox[] _customRadarUrlBoxes;
 
     public SettingsPage()
     {
         InitializeComponent();
         LocationsList.ItemsSource = _locations;
+        _customRadarUrlBoxes = [CustomRadarUrl1, CustomRadarUrl2, CustomRadarUrl3, CustomRadarUrl4, CustomRadarUrl5];
+        foreach (var box in _customRadarUrlBoxes)
+            box.TextChanged += OnCustomRadarUrlChanged;
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -38,6 +44,14 @@ public sealed partial class SettingsPage : Page
         _suppressWindowPlacementEvents = true;
         SyncWindowPlacementCombo();
         _suppressWindowPlacementEvents = false;
+
+        _suppressRadarFlipSecondsEvents = true;
+        RadarFlipSecondsBox.Value = App.Current.Locations.Settings.RadarFlipIntervalSeconds;
+        _suppressRadarFlipSecondsEvents = false;
+
+        _suppressCustomRadarUrlEvents = true;
+        SyncCustomRadarUrlBoxes();
+        _suppressCustomRadarUrlEvents = false;
 
         AppTheme.Apply(App.Current.Locations.Settings);
 
@@ -311,6 +325,36 @@ public sealed partial class SettingsPage : Page
 
         var minutes = (int)Math.Clamp(Math.Round(args.NewValue), 5, 120);
         App.Current.Locations.Settings.RefreshIntervalMinutes = minutes;
+        await App.Current.Locations.SaveAsync().ConfigureAwait(true);
+    }
+
+    private async void OnRadarFlipSecondsChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+    {
+        if (_suppressRadarFlipSecondsEvents)
+            return;
+
+        if (!double.IsFinite(args.NewValue))
+            return;
+
+        App.Current.Locations.Settings.RadarFlipIntervalSeconds =
+            (int)Math.Clamp(Math.Round(args.NewValue), 3, 120);
+        await App.Current.Locations.SaveAsync().ConfigureAwait(true);
+    }
+
+    private void SyncCustomRadarUrlBoxes()
+    {
+        var urls = App.Current.Locations.Settings.CustomRadarImageUrls;
+        for (var i = 0; i < _customRadarUrlBoxes.Length; i++)
+            _customRadarUrlBoxes[i].Text = i < urls.Count ? urls[i] : string.Empty;
+    }
+
+    private async void OnCustomRadarUrlChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_suppressCustomRadarUrlEvents)
+            return;
+
+        var raw = _customRadarUrlBoxes.Select(b => b.Text).ToList();
+        App.Current.Locations.Settings.CustomRadarImageUrls = CustomRadarUrlHelper.Normalize(raw);
         await App.Current.Locations.SaveAsync().ConfigureAwait(true);
     }
 

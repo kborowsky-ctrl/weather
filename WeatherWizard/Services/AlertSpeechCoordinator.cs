@@ -15,6 +15,17 @@ public sealed class AlertSpeechCoordinator(SpeechService speech)
 
         if (!_lastIds.TryGetValue(location.Id, out var previous))
         {
+            if (alerts.Count > 0)
+            {
+                var lead = alerts[0].Headline.Trim();
+                if (lead.Length == 0)
+                    lead = "Active alert.";
+                if (alerts.Count == 1)
+                    await speech.SpeakAsync($"Weather alert in effect for {location.SpeechLocationLabel}. {lead}", ct).ConfigureAwait(false);
+                else
+                    await speech.SpeakAsync($"Weather alerts in effect for {location.SpeechLocationLabel}. {lead} and {alerts.Count - 1} more.", ct).ConfigureAwait(false);
+            }
+
             _lastIds[location.Id] = current;
             return;
         }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using WeatherWizard.Models;
 
@@ -11,7 +12,7 @@ public sealed class NwsAlertsClient(HttpClientFactory http)
         CancellationToken ct = default)
     {
         var url =
-            $"https://api.weather.gov/alerts/active?point={latitude.ToString(System.Globalization.CultureInfo.InvariantCulture)},{longitude.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+            $"https://api.weather.gov/alerts/active?point={latitude.ToString(CultureInfo.InvariantCulture)},{longitude.ToString(CultureInfo.InvariantCulture)}";
 
         using var req = new HttpRequestMessage(HttpMethod.Get, url);
         req.Headers.TryAddWithoutValidation("Accept", "application/geo+json, application/json;q=0.9, */*;q=0.8");
@@ -40,21 +41,38 @@ public sealed class NwsAlertsClient(HttpClientFactory http)
             if (string.IsNullOrWhiteSpace(id))
                 continue;
 
-            var headline = props.TryGetProperty("headline", out var hEl) && hEl.ValueKind == JsonValueKind.String
+            var rawHeadline = props.TryGetProperty("headline", out var hEl) && hEl.ValueKind == JsonValueKind.String
                 ? hEl.GetString() ?? ""
                 : props.TryGetProperty("event", out var eEl) && eEl.ValueKind == JsonValueKind.String
                     ? eEl.GetString() ?? "Alert"
                     : "Alert";
 
-            Uri? link = null;
-            if (props.TryGetProperty("web", out var webEl) && webEl.ValueKind == JsonValueKind.String)
+            var headline = NwsAlertHeadlineFormatter.Format(rawHeadline);
+
+            var webFromApi = props.TryGetProperty("web", out var webEl) && webEl.ValueKind == JsonValueKind.String
+                ? webEl.GetString()
+                : null;
+
+            DateTimeOffset? sent = null;
+            if (props.TryGetProperty("sent", out var sentEl) && sentEl.ValueKind == JsonValueKind.String
+                && DateTimeOffset.TryParse(sentEl.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var sentDto))
+                sent = sentDto;
+
+            string? vtec = null;
+            if (props.TryGetProperty("parameters", out var pars)
+                && pars.TryGetProperty("VTEC", out var vtecArr)
+                && vtecArr.ValueKind == JsonValueKind.Array)
             {
-                var s = webEl.GetString();
-                if (Uri.TryCreate(s, UriKind.Absolute, out var u))
-                    link = u;
+                foreach (var v in vtecArr.EnumerateArray())
+                {
+                    if (v.ValueKind != JsonValueKind.String)
+                        continue;
+                    vtec = v.GetString();
+                    break;
+                }
             }
 
-            link ??= Uri.TryCreate(id, UriKind.Absolute, out var idUri) ? idUri : null;
+            var link = NwsAlertPublicLink.Resolve(webFromApi, vtec, sent, latitude, longitude);
 
             list.Add(new WeatherAlertItem { Id = id, Headline = headline, Link = link });
         }

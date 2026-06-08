@@ -84,6 +84,11 @@ file static class JsonExtensions
     public static string GetPropertyOrDefault(this JsonElement el, string name) =>
         el.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.String ? p.GetString() ?? "" : "";
 
-    public static double? GetDoubleOr(this JsonElement el, string name) =>
-        el.TryGetProperty(name, out var p) && p.TryGetDouble(out var d) ? d : null;
+    public static double? GetDoubleOr(this JsonElement el, string name)
+    {
+        if (!el.TryGetProperty(name, out var p) || p.ValueKind == JsonValueKind.Null)
+            return null;
+
+        return p.ValueKind == JsonValueKind.Number && p.TryGetDouble(out var d) ? d : null;
+    }
 }

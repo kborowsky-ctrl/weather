@@ -16,6 +16,7 @@ public partial class App : Application
     private Window? window;
     private Frame? _rootFrame;
     private Grid? _titleBarHost;
+    private TaskTrayIcon? _trayIcon;
 
     public static new App Current => (App)Application.Current;
 
@@ -32,6 +33,8 @@ public partial class App : Application
     public HttpClientFactory Http { get; }
 
     public OpenMeteoGeocodingClient Geocoding { get; }
+
+    public OpenMeteoAirQualityClient AirQuality { get; }
 
     public OpenMeteoForecastClient Forecast { get; }
 
@@ -55,7 +58,8 @@ public partial class App : Application
 
         Http = new HttpClientFactory();
         Geocoding = new OpenMeteoGeocodingClient(Http);
-        Forecast = new OpenMeteoForecastClient(Http);
+        AirQuality = new OpenMeteoAirQualityClient(Http);
+        Forecast = new OpenMeteoForecastClient(Http, AirQuality);
         Nws = new NwsAlertsClient(Http);
         NwsPoints = new NwsPointsClient(Http);
         NwsGridForecast = new NwsGridForecastClient(Http);
@@ -113,6 +117,22 @@ public partial class App : Application
         _ = _rootFrame.Navigate(typeof(MainPage), e.Arguments);
         window.Activate();
 
+        if (_trayIcon is null)
+        {
+            TaskTrayIcon? tray = null;
+            try
+            {
+                tray = new TaskTrayIcon(window);
+                TaskTrayIcon.ApplyNoTaskbarButton(window);
+                _trayIcon = tray;
+                tray = null;
+            }
+            finally
+            {
+                tray?.Dispose();
+            }
+        }
+
         AppTheme.Apply(Locations.Settings);
     }
 
@@ -130,6 +150,19 @@ public partial class App : Application
     {
         if (_rootFrame?.Content is MainPage mp)
             mp.RequestRefresh();
+    }
+
+    /// <summary>Tray icon follows the first location’s WMO weather code.</summary>
+    public void UpdateTrayWeatherIcon(int weatherCode, string? conditionEmoji = null)
+    {
+        if (_trayIcon is null || window is null)
+            return;
+
+        var dq = window.DispatcherQueue;
+        if (dq.HasThreadAccess)
+            _trayIcon.SetWeatherIcon(weatherCode, conditionEmoji);
+        else
+            _ = dq.TryEnqueue(() => _trayIcon.SetWeatherIcon(weatherCode, conditionEmoji));
     }
 
     private Grid BuildWindowHost()
@@ -204,6 +237,9 @@ public partial class App : Application
 
     private async void OnWindowClosed(object sender, WindowEventArgs args)
     {
+        _trayIcon?.Dispose();
+        _trayIcon = null;
+
         if (window is not null)
         {
             WindowPlacementHelper.PersistWindowGeometry(window, Locations.Settings);

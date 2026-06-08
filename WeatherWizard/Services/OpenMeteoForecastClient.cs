@@ -4,7 +4,7 @@ using WeatherWizard.Models;
 
 namespace WeatherWizard.Services;
 
-public sealed class OpenMeteoForecastClient(HttpClientFactory http)
+public sealed class OpenMeteoForecastClient(HttpClientFactory http, OpenMeteoAirQualityClient airQuality)
 {
     public async Task<ForecastBundle> GetForecastAsync(double latitude, double longitude, CancellationToken ct = default)
     {
@@ -14,18 +14,28 @@ public sealed class OpenMeteoForecastClient(HttpClientFactory http)
             "https://api.open-meteo.com/v1/forecast?" +
             $"latitude={lat}&longitude={lon}" +
             "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code," +
-            "wind_speed_10m,wind_direction_10m,dew_point_2m,surface_pressure,visibility" +
+            "wind_speed_10m,wind_direction_10m,dew_point_2m,surface_pressure" +
             "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset" +
-            "&hourly=temperature_2m,precipitation_probability,weather_code" +
+            "&hourly=temperature_2m,precipitation_probability,weather_code,surface_pressure" +
+            "&past_hours=12" +
             "&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&forecast_days=7";
 
-        using var resp = await http.Client.GetAsync(url, ct).ConfigureAwait(false);
+        var forecastGet = http.Client.GetAsync(url, ct);
+        var aqiGet = airQuality.GetUsAqiAsync(latitude, longitude, ct);
+        await Task.WhenAll(forecastGet, aqiGet).ConfigureAwait(false);
+
+        using var resp = await forecastGet.ConfigureAwait(false);
+        var usAqi = await aqiGet.ConfigureAwait(false);
         resp.EnsureSuccessStatusCode();
         await using var stream = await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
         using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false);
         var root = doc.RootElement;
 
-        var utcOffsetSeconds = root.TryGetProperty("utc_offset_seconds", out var offEl) ? offEl.GetInt32() : 0;
+        var utcOffsetSeconds = root.TryGetProperty("utc_offset_seconds", out var offEl)
+                                 && offEl.ValueKind == JsonValueKind.Number
+                                 && offEl.TryGetInt32(out var off)
+            ? off
+            : 0;
         var tzOffset = TimeSpan.FromSeconds(utcOffsetSeconds);
 
         CurrentConditionsPanel panel = CurrentConditionsPanel.Blank;
@@ -39,33 +49,27 @@ public sealed class OpenMeteoForecastClient(HttpClientFactory http)
             var rh = cur.TryGetInt("relative_humidity_2m");
             var dew = cur.TryGetDouble("dew_point_2m");
             var presHpa = cur.TryGetDouble("surface_pressure");
-            var visM = cur.TryGetDouble("visibility");
 
             var wxShort = WeatherCodeInterpreter.Short(code);
 
             var r1L = temp is null ? "—" : $"{Math.Round(temp.Value)}°F";
             var r1R = feels is null ? "—" : $"Feels {Math.Round(feels.Value)}°F";
 
-            var r2L = dew is null ? "—" : $"Dew {Math.Round(dew.Value)}°F";
+            var r2L = dew is null ? "—" : $"Dew Pt {Math.Round(dew.Value)}°F";
             var r2R = rh is null ? "—" : $"{rh}% RH";
 
             string r3L;
+            string pressureArrow = "";
+            var pressureTrend = PressureTrendKind.Unknown;
             if (presHpa is null)
                 r3L = "—";
             else
             {
                 var inHg = presHpa.Value / 33.8639;
-                r3L = $"{inHg:0.00} inHg";
+                r3L = $"{inHg:0.00} in";
             }
 
-            string r3R;
-            if (visM is null || visM <= 0)
-                r3R = "—";
-            else
-            {
-                var miles = visM.Value / 1609.344;
-                r3R = miles >= 0.25 ? $"{miles:0.#} mi vis" : $"{visM.Value:0} m vis";
-            }
+            var r3R = AirQualityFormatter.FormatUsAqi(usAqi);
 
             string r4L;
             if (wind is null)
@@ -83,7 +87,10 @@ public sealed class OpenMeteoForecastClient(HttpClientFactory http)
                 r3L, r3R,
                 r4L, r4R,
                 "—", "—",
-                WeatherCodeInterpreter.Emoji(code));
+                WeatherCodeInterpreter.Emoji(code),
+                code,
+                pressureArrow,
+                pressureTrend);
         }
 
         var days = new List<ForecastDayItem>();
@@ -161,12 +168,36 @@ public sealed class OpenMeteoForecastClient(HttpClientFactory http)
         List<double> hourlyTemps = [];
         List<int?> hourlyPops = [];
         List<int> hourlyCodes = [];
+        List<double> hourlyPressureHpa = [];
         if (root.TryGetProperty("hourly", out var hourly))
         {
             hourlyTimes = ParseHourlyTimes(hourly, tzOffset);
             hourlyTemps = hourly.GetHourlyDoubleArray("temperature_2m");
             hourlyPops = hourly.GetHourlyIntArrayNullable("precipitation_probability");
             hourlyCodes = hourly.GetHourlyIntArray("weather_code");
+            hourlyPressureHpa = hourly.GetHourlyDoubleArray("surface_pressure");
+        }
+
+        if (panel.WeatherCode >= 0 && hourlyTimes.Count > 0 && hourlyPressureHpa.Count > 0)
+        {
+            var nowTime = ResolveCurrentObservationTime(root, tzOffset);
+            var nowIdx = ClosestHourlyIndex(hourlyTimes, nowTime);
+
+            var pastIdx = nowIdx - 3;
+            if (pastIdx < 0)
+                pastIdx = ClosestHourlyIndex(hourlyTimes, hourlyTimes[nowIdx].AddHours(-3));
+
+            var currentInHg = root.TryGetProperty("current", out var curEl) && curEl.TryGetDouble("surface_pressure") is double cp
+                ? PressureTrendCalculator.HpaToInHg(cp)
+                : PressureTrendCalculator.HpaToInHg(
+                    nowIdx < hourlyPressureHpa.Count ? hourlyPressureHpa[nowIdx] : null);
+
+            var pastInHg = pastIdx >= 0 && pastIdx < hourlyPressureHpa.Count
+                ? PressureTrendCalculator.HpaToInHg(hourlyPressureHpa[pastIdx])
+                : null;
+
+            var (arrow, trend) = PressureTrendCalculator.Analyze(currentInHg, pastInHg);
+            panel = panel with { PressureArrow = arrow, PressureTrend = trend };
         }
 
         List<string?> sunrisesIso = [];
@@ -330,6 +361,34 @@ public sealed class OpenMeteoForecastClient(HttpClientFactory http)
         return list;
     }
 
+    private static int ClosestHourlyIndex(IReadOnlyList<DateTimeOffset> times, DateTimeOffset target)
+    {
+        var best = 0;
+        var bestDelta = TimeSpan.MaxValue;
+        for (var i = 0; i < times.Count; i++)
+        {
+            var delta = (times[i] - target).Duration();
+            if (delta < bestDelta)
+            {
+                bestDelta = delta;
+                best = i;
+            }
+        }
+
+        return best;
+    }
+
+    private static DateTimeOffset ResolveCurrentObservationTime(JsonElement root, TimeSpan tzOffset)
+    {
+        if (root.TryGetProperty("current", out var cur)
+            && cur.TryGetProperty("time", out var timeEl)
+            && timeEl.ValueKind == JsonValueKind.String
+            && TryParseOpenMeteoInstant(timeEl.GetString() ?? "", out var dto))
+            return dto;
+
+        return DateTimeOffset.UtcNow.ToOffset(tzOffset);
+    }
+
 }
 
 public sealed record ForecastBundle(CurrentConditionsPanel Current, IReadOnlyList<ForecastDayItem> Days);
@@ -351,11 +410,21 @@ file static class WindCompass
 
 file static class JsonCurrentExtensions
 {
-    public static double? TryGetDouble(this JsonElement cur, string name) =>
-        cur.TryGetProperty(name, out var el) && el.TryGetDouble(out var v) ? v : null;
+    public static double? TryGetDouble(this JsonElement cur, string name)
+    {
+        if (!cur.TryGetProperty(name, out var el) || el.ValueKind == JsonValueKind.Null)
+            return null;
 
-    public static int? TryGetInt(this JsonElement cur, string name) =>
-        cur.TryGetProperty(name, out var el) && el.TryGetInt32(out var v) ? v : null;
+        return el.ValueKind == JsonValueKind.Number && el.TryGetDouble(out var v) ? v : null;
+    }
+
+    public static int? TryGetInt(this JsonElement cur, string name)
+    {
+        if (!cur.TryGetProperty(name, out var el) || el.ValueKind == JsonValueKind.Null)
+            return null;
+
+        return el.ValueKind == JsonValueKind.Number && el.TryGetInt32(out var v) ? v : null;
+    }
 }
 
 file static class ForecastFormatters
@@ -384,8 +453,12 @@ file static class DailyJsonExtensions
             return list;
         foreach (var el in arr.EnumerateArray())
         {
-            if (el.TryGetInt32(out var v)) list.Add(v);
-            else list.Add(0);
+            if (el.ValueKind == JsonValueKind.Null)
+                list.Add(0);
+            else if (el.ValueKind == JsonValueKind.Number && el.TryGetInt32(out var v))
+                list.Add(v);
+            else
+                list.Add(0);
         }
         return list;
     }
@@ -397,9 +470,12 @@ file static class DailyJsonExtensions
             return list;
         foreach (var el in arr.EnumerateArray())
         {
-            if (el.ValueKind == JsonValueKind.Null) list.Add(null);
-            else if (el.TryGetInt32(out var v)) list.Add(v);
-            else list.Add(null);
+            if (el.ValueKind == JsonValueKind.Null)
+                list.Add(null);
+            else if (el.ValueKind == JsonValueKind.Number && el.TryGetInt32(out var v))
+                list.Add(v);
+            else
+                list.Add(null);
         }
         return list;
     }
@@ -411,8 +487,12 @@ file static class DailyJsonExtensions
             return list;
         foreach (var el in arr.EnumerateArray())
         {
-            if (el.TryGetDouble(out var v)) list.Add(v);
-            else list.Add(double.NaN);
+            if (el.ValueKind == JsonValueKind.Null)
+                list.Add(double.NaN);
+            else if (el.ValueKind == JsonValueKind.Number && el.TryGetDouble(out var v))
+                list.Add(v);
+            else
+                list.Add(double.NaN);
         }
         return list;
     }
@@ -443,7 +523,7 @@ file static class DailyJsonExtensions
         {
             if (el.ValueKind == JsonValueKind.Null)
                 list.Add(double.NaN);
-            else if (el.TryGetDouble(out var v))
+            else if (el.ValueKind == JsonValueKind.Number && el.TryGetDouble(out var v))
                 list.Add(v);
             else
                 list.Add(double.NaN);
@@ -458,9 +538,12 @@ file static class DailyJsonExtensions
             return list;
         foreach (var el in arr.EnumerateArray())
         {
-            if (el.ValueKind == JsonValueKind.Null) list.Add(null);
-            else if (el.TryGetInt32(out var v)) list.Add(v);
-            else list.Add(null);
+            if (el.ValueKind == JsonValueKind.Null)
+                list.Add(null);
+            else if (el.ValueKind == JsonValueKind.Number && el.TryGetInt32(out var v))
+                list.Add(v);
+            else
+                list.Add(null);
         }
         return list;
     }
@@ -472,8 +555,12 @@ file static class DailyJsonExtensions
             return list;
         foreach (var el in arr.EnumerateArray())
         {
-            if (el.TryGetInt32(out var v)) list.Add(v);
-            else list.Add(0);
+            if (el.ValueKind == JsonValueKind.Null)
+                list.Add(0);
+            else if (el.ValueKind == JsonValueKind.Number && el.TryGetInt32(out var v))
+                list.Add(v);
+            else
+                list.Add(0);
         }
         return list;
     }

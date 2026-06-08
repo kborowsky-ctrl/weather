@@ -65,6 +65,7 @@ public sealed class LocationRepository
             _settings = loaded ?? new AppSettings();
             NormalizeTheme(_settings);
             NormalizeWindowPlacement(_settings);
+            NormalizeRadarSettings(_settings);
         }
         catch
         {
@@ -91,6 +92,7 @@ public sealed class LocationRepository
             Directory.CreateDirectory(SettingsDirectory);
             NormalizeTheme(_settings);
             NormalizeWindowPlacement(_settings);
+            NormalizeRadarSettings(_settings);
             var json = JsonSerializer.Serialize(_settings, JsonOptions);
             await File.WriteAllTextAsync(SettingsPath, json).ConfigureAwait(false);
         }
@@ -114,5 +116,11 @@ public sealed class LocationRepository
     private static void NormalizeWindowPlacement(AppSettings s)
     {
         s.WindowPlacement = WindowPlacementHelper.NormalizeMode(s.WindowPlacement);
+    }
+
+    private static void NormalizeRadarSettings(AppSettings s)
+    {
+        s.RadarFlipIntervalSeconds = Math.Clamp(s.RadarFlipIntervalSeconds, 3, 120);
+        s.CustomRadarImageUrls = CustomRadarUrlHelper.Normalize(s.CustomRadarImageUrls);
     }
 }

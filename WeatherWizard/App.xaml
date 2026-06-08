@@ -16,6 +16,7 @@
             <SolidColorBrush x:Key="AppSectionBorderBrush" Color="#FFBDBDBD" />
             <SolidColorBrush x:Key="AppBodyTextBrush" Color="#FF000000" />
             <SolidColorBrush x:Key="AppMutedTextBrush" Color="#FF5C5C5C" />
+            <SolidColorBrush x:Key="AppAlertRedBrush" Color="#FFC62828" />
             <Color x:Key="Primary">#512BD4</Color>
 
             <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource Primary}" />
