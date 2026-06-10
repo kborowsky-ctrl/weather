@@ -9,14 +9,18 @@ public static class NwsAlertDisplayFormatter
         if (alerts.Count == 0)
             return "No active weather alerts.";
 
-        if (alerts.Count == 1)
-            return alerts[0].Summary;
-
-        var parts = alerts
-            .Select(a => a.Summary)
-            .Where(s => !string.IsNullOrWhiteSpace(s))
+        var summaries = alerts
+            .Select(a => a.Summary.Trim())
+            .Where(s => s.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        return parts.Count == 0 ? $"{alerts.Count} active alerts." : string.Join(" · ", parts);
+        if (summaries.Count == 0)
+            return $"{alerts.Count} active alerts.";
+
+        if (summaries.Count == 1)
+            return $"Weather Alert: {summaries[0]}";
+
+        return $"Weather Alert: {string.Join(" - ", summaries)}";
     }
 }
