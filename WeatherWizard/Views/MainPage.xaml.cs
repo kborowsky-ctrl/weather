@@ -17,6 +17,7 @@ public sealed partial class MainPage : Page
     public MainPage()
     {
         InitializeComponent();
+        LocationTabs.SelectionChanged += (_, _) => RequestFitMainWindowHeight();
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
@@ -25,6 +26,7 @@ public sealed partial class MainPage : Page
     {
         base.OnNavigatedTo(e);
         AppTheme.Apply(App.Current.Locations.Settings);
+        RequestFitMainWindowHeight();
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -117,6 +119,7 @@ public sealed partial class MainPage : Page
             };
 
             var view = new LocationWeatherView { VerticalAlignment = VerticalAlignment.Top };
+            view.ContentLayoutChanged += (_, _) => RequestFitMainWindowHeight();
             view.Attach(vm);
             tab.Content = view;
             LocationTabs.TabItems.Add(tab);
@@ -189,11 +192,8 @@ public sealed partial class MainPage : Page
                 }
                 else
                 {
-                    var first = alerts[0];
-                    vm.AlertSummary = alerts.Count == 1
-                        ? first.Headline
-                        : $"{alerts.Count} active alerts: {first.Headline} (+{alerts.Count - 1} more)";
-                    vm.AlertLink = first.Link;
+                    vm.AlertSummary = NwsAlertDisplayFormatter.FormatActiveAlerts(alerts);
+                    vm.AlertLink = alerts[0].Link;
                 }
 
                 await app.AlertSpeech.OnAlertsUpdatedAsync(loc, alerts).ConfigureAwait(true);
@@ -228,6 +228,14 @@ public sealed partial class MainPage : Page
                 vm.ErrorBanner = ex.Message;
             }
         }
+
+        RequestFitMainWindowHeight();
+    }
+
+    private void RequestFitMainWindowHeight()
+    {
+        _ = DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+            App.Current.FitMainWindowToContent());
     }
 
     /// <summary>Triggers a full refresh (same as the toolbar refresh control).</summary>

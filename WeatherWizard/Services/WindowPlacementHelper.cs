@@ -8,9 +8,10 @@ namespace WeatherWizard.Services;
 
 public static class WindowPlacementHelper
 {
-    private const int DefaultWidth = 460;
-    private const int DefaultHeight = 980;
-    private const int MinW = 360;
+    public const int DefaultWidth = 460;
+    public const int MinWidth = 360;
+    private const int DefaultHeight = 720;
+    private const int MinW = MinWidth;
     private const int MinH = 400;
     private const int Margin = 8;
 

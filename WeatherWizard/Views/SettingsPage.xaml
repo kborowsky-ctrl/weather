@@ -90,18 +90,31 @@
                         <TextBlock
                             FontSize="11"
                             Foreground="{ThemeResource AppMutedTextBrush}"
-                            Text="The radar alternates between the regional view, local zoom, and any custom images below."
+                            Text="The radar alternates between the regional view, local zoom, and any custom images for each location."
                             TextWrapping="WrapWholeWords" />
                         <TextBlock
                             FontSize="12"
                             FontWeight="SemiBold"
                             Foreground="{ThemeResource AppBodyTextBrush}"
-                            Text="Custom image URLs (up to 5)" />
+                            Text="Custom image URLs per location (up to 5)" />
                         <TextBlock
                             FontSize="11"
                             Foreground="{ThemeResource AppMutedTextBrush}"
-                            Text="Direct links to GIF, PNG, or JPG images. The full image is shown (not cropped). NWS zoom still applies to built-in radar views."
+                            Text="Pick a location tab below. Direct links to GIF, PNG, or JPG images fill the radar panel (centered), like the built-in NWS views."
                             TextWrapping="WrapWholeWords" />
+                        <TextBlock
+                            x:Name="CustomRadarNoLocationsText"
+                            FontSize="11"
+                            Foreground="{ThemeResource AppMutedTextBrush}"
+                            Text="Add a location below to configure custom radar images."
+                            TextWrapping="WrapWholeWords"
+                            Visibility="Collapsed" />
+                        <TabView
+                            x:Name="CustomRadarLocationTabs"
+                            IsAddTabButtonVisible="False"
+                            SelectionChanged="OnCustomRadarTabSelectionChanged"
+                            TabWidthMode="SizeToContent"
+                            Visibility="Collapsed" />
                         <TextBox x:Name="CustomRadarUrl1" Header="Image 1" PlaceholderText="https://example.com/radar.gif" />
                         <TextBox x:Name="CustomRadarUrl2" Header="Image 2" PlaceholderText="Optional" />
                         <TextBox x:Name="CustomRadarUrl3" Header="Image 3" PlaceholderText="Optional" />

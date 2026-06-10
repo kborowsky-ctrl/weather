@@ -17,7 +17,9 @@ public sealed class AlertSpeechCoordinator(SpeechService speech)
         {
             if (alerts.Count > 0)
             {
-                var lead = alerts[0].Headline.Trim();
+                var lead = alerts[0].Summary.Trim();
+                if (lead.Length == 0)
+                    lead = alerts[0].Headline.Trim();
                 if (lead.Length == 0)
                     lead = "Active alert.";
                 if (alerts.Count == 1)

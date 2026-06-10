@@ -41,13 +41,16 @@ public sealed class NwsAlertsClient(HttpClientFactory http)
             if (string.IsNullOrWhiteSpace(id))
                 continue;
 
+            var rawEvent = props.TryGetProperty("event", out var eEl) && eEl.ValueKind == JsonValueKind.String
+                ? eEl.GetString() ?? ""
+                : "";
+
             var rawHeadline = props.TryGetProperty("headline", out var hEl) && hEl.ValueKind == JsonValueKind.String
                 ? hEl.GetString() ?? ""
-                : props.TryGetProperty("event", out var eEl) && eEl.ValueKind == JsonValueKind.String
-                    ? eEl.GetString() ?? "Alert"
-                    : "Alert";
+                : string.IsNullOrWhiteSpace(rawEvent) ? "Alert" : rawEvent;
 
             var headline = NwsAlertHeadlineFormatter.Format(rawHeadline);
+            var summary = NwsAlertHeadlineFormatter.ToSummary(rawEvent, rawHeadline);
 
             var webFromApi = props.TryGetProperty("web", out var webEl) && webEl.ValueKind == JsonValueKind.String
                 ? webEl.GetString()
@@ -74,7 +77,7 @@ public sealed class NwsAlertsClient(HttpClientFactory http)
 
             var link = NwsAlertPublicLink.Resolve(webFromApi, vtec, sent, latitude, longitude);
 
-            list.Add(new WeatherAlertItem { Id = id, Headline = headline, Link = link });
+            list.Add(new WeatherAlertItem { Id = id, Headline = headline, Summary = summary, Link = link });
         }
 
         return list;

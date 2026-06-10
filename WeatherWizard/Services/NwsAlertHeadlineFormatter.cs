@@ -20,6 +20,12 @@ public static partial class NwsAlertHeadlineFormatter
     [GeneratedRegex(@"\s{2,}", RegexOptions.CultureInvariant)]
     private static partial Regex MultiSpaceRegex();
 
+    /// <summary>Strips NWS timing tails (issued / in effect / until …) from headline text.</summary>
+    [GeneratedRegex(
+        @"\s+(?:issued|remains\s+in\s+effect|now\s+in\s+effect|in\s+effect(?:\s+from|\s+until)?)\b.*$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex TimingTailRegex();
+
     public static string Format(string? headline)
     {
         if (string.IsNullOrWhiteSpace(headline))
@@ -29,7 +35,23 @@ public static partial class NwsAlertHeadlineFormatter
         var original = s;
         s = ByNwsSuffixRegex().Replace(s, "");
         s = TimeZoneTokenRegex().Replace(s, "");
+        s = TimingTailRegex().Replace(s, "");
         s = MultiSpaceRegex().Replace(s, " ").Trim();
         return string.IsNullOrEmpty(s) ? original : s;
+    }
+
+    /// <summary>Short label for UI: event name, or headline with dates/times removed.</summary>
+    public static string ToSummary(string? eventName, string? headline)
+    {
+        if (!string.IsNullOrWhiteSpace(eventName))
+            return eventName.Trim();
+
+        if (string.IsNullOrWhiteSpace(headline))
+            return "";
+
+        var s = Format(headline);
+        s = TimingTailRegex().Replace(s, "");
+        s = MultiSpaceRegex().Replace(s, " ").Trim();
+        return string.IsNullOrEmpty(s) ? headline.Trim() : s;
     }
 }

@@ -18,8 +18,10 @@
         Background="Transparent"
         VerticalScrollBarVisibility="Auto">
         <StackPanel
-            Padding="10,4,10,0"
+            x:Name="WeatherContentStack"
+            Padding="10,4,10,4"
             Spacing="6"
+            SizeChanged="WeatherContentStack_SizeChanged"
             VerticalAlignment="Top">
             <Border
                 Padding="8"
@@ -158,11 +160,9 @@
                         <TextBlock
                             Grid.Column="0"
                             HorizontalAlignment="Stretch"
-                            MaxLines="2"
                             FontSize="11"
                             Foreground="{ThemeResource AppBodyTextBrush}"
                             Text="{Binding AlertSummary}"
-                            TextTrimming="CharacterEllipsis"
                             TextWrapping="WrapWholeWords" />
                         <HyperlinkButton
                             x:Name="AlertDetailsLink"
@@ -317,7 +317,7 @@
             </Border>
 
             <Border
-                Padding="8,8,8,0"
+                Padding="8,8,8,8"
                 BorderBrush="{ThemeResource AppSectionBorderBrush}"
                 BorderThickness="1"
                 CornerRadius="6">
@@ -355,7 +355,7 @@
                                 x:Name="MapRasterImage"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
-                                Stretch="Uniform"
+                                Stretch="UniformToFill"
                                 Visibility="Collapsed" />
                             <TextBlock
                                 x:Name="RadarPlaceholder"
@@ -364,7 +364,7 @@
                                 VerticalAlignment="Center"
                                 FontSize="11"
                                 Foreground="{ThemeResource AppMutedTextBrush}"
-                                Text="Radar is available for U.S. locations after the site id loads, or add custom image URLs in Settings."
+                                Text="Radar is available for U.S. locations after the site id loads, or add custom image URLs per location in Settings."
                                 TextAlignment="Center"
                                 TextWrapping="WrapWholeWords"
                                 Visibility="Visible" />

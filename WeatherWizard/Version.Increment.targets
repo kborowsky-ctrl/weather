@@ -1,0 +1,8 @@
+<Project>
+  <Target Name="IncrementVersionOnSourceChange"
+          BeforeTargets="PrepareForBuild"
+          Condition="'$(DesignTimeBuild)' != 'true' and '$(SkipVersionIncrement)' != 'true'">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\scripts\Increment-Version.ps1&quot; &quot;$(MSBuildProjectDirectory)&quot;"
+          IgnoreExitCode="false" />
+  </Target>
+</Project>

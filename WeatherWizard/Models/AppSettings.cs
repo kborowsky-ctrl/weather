@@ -31,7 +31,7 @@ public sealed class AppSettings
     /// <summary>Seconds between NWS radar / custom image flips (3–120).</summary>
     public int RadarFlipIntervalSeconds { get; set; } = 8;
 
-    /// <summary>Up to 5 direct image URLs (GIF/PNG) shown at standard zoom in the radar carousel.</summary>
+    /// <summary>Legacy global custom radar URLs; migrated to each <see cref="SavedLocation"/> on load.</summary>
     public List<string> CustomRadarImageUrls { get; set; } = [];
 
     [JsonIgnore]

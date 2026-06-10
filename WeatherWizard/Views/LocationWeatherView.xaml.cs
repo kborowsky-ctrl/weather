@@ -31,10 +31,18 @@ public sealed partial class LocationWeatherView : UserControl
 
     public string VersionDisplay => AppVersion.Display;
 
+    public event EventHandler? ContentLayoutChanged;
+
     public LocationWeatherView()
     {
         InitializeComponent();
     }
+
+    private void WeatherContentStack_SizeChanged(object sender, SizeChangedEventArgs e) =>
+        NotifyContentLayoutChanged();
+
+    private void NotifyContentLayoutChanged() =>
+        ContentLayoutChanged?.Invoke(this, EventArgs.Empty);
 
     private void RefreshLink_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {
@@ -53,6 +61,7 @@ public sealed partial class LocationWeatherView : UserControl
         UpdateRadarHostHeight();
         UpdateRadarClip();
         ApplyCurrentRadarFramePresentation();
+        NotifyContentLayoutChanged();
     }
 
     public void Attach(LocationWeatherViewModel vm)
@@ -251,7 +260,7 @@ public sealed partial class LocationWeatherView : UserControl
         }
 
         var n = 1;
-        foreach (var url in App.Current.Locations.Settings.CustomRadarImageUrls)
+        foreach (var url in _vm.Location.CustomRadarImageUrls)
         {
             frames.Add(new RadarFrame(RadarFrameKind.Custom, url, $"Custom {n}"));
             n++;
@@ -354,19 +363,11 @@ public sealed partial class LocationWeatherView : UserControl
             };
             MapRasterImage.Stretch = Stretch.Uniform;
         }
-        else if (frame.Kind == RadarFrameKind.Custom)
+        else
         {
             MapRasterImage.RenderTransform = null;
             MapRasterImage.HorizontalAlignment = HorizontalAlignment.Center;
             MapRasterImage.VerticalAlignment = VerticalAlignment.Center;
-            MapRasterImage.Stretch = Stretch.Uniform;
-            UpdateRadarHostHeight();
-        }
-        else
-        {
-            MapRasterImage.RenderTransform = null;
-            MapRasterImage.HorizontalAlignment = HorizontalAlignment.Stretch;
-            MapRasterImage.VerticalAlignment = VerticalAlignment.Stretch;
             MapRasterImage.Stretch = Stretch.UniformToFill;
             UpdateRadarHostHeight();
         }
@@ -380,22 +381,7 @@ public sealed partial class LocationWeatherView : UserControl
         if (w <= 0 || double.IsNaN(w))
             return;
 
-        double target;
-        if (_radarFrameIndex >= 0
-            && _radarFrameIndex < _radarFrames.Count
-            && _radarFrames[_radarFrameIndex].Kind == RadarFrameKind.Custom
-            && MapRasterImage.Source is BitmapImage bmp
-            && bmp.PixelWidth > 0
-            && bmp.PixelHeight > 0)
-        {
-            var aspect = (double)bmp.PixelHeight / bmp.PixelWidth;
-            target = Math.Round(Math.Clamp(w * aspect, 120, 460));
-        }
-        else
-        {
-            // NWS GIF aspect; UniformToFill may crop edges for a filled card.
-            target = Math.Round(Math.Clamp(w / 1.08, 120, 460));
-        }
+        var target = Math.Round(Math.Clamp(w / 1.08, 120, 460));
 
         if (double.IsNaN(RadarImageHost.Height) || Math.Abs(RadarImageHost.Height - target) > 0.5)
             RadarImageHost.Height = target;
@@ -448,6 +434,7 @@ public sealed partial class LocationWeatherView : UserControl
             UpdateRadarHostHeight();
             ApplyCurrentRadarFramePresentation();
             UpdateRadarClip();
+            NotifyContentLayoutChanged();
         };
     }
 }

@@ -7,7 +7,9 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Background="{ThemeResource AppPageBackgroundBrush}"
     mc:Ignorable="d">
-    <Grid Background="{ThemeResource AppPageBackgroundBrush}">
+    <Grid
+        Background="{ThemeResource AppPageBackgroundBrush}"
+        VerticalAlignment="Top">
         <TabView
             x:Name="LocationTabs"
             Background="{ThemeResource AppPageBackgroundBrush}"

@@ -121,6 +121,24 @@ public sealed class LocationRepository
     private static void NormalizeRadarSettings(AppSettings s)
     {
         s.RadarFlipIntervalSeconds = Math.Clamp(s.RadarFlipIntervalSeconds, 3, 120);
-        s.CustomRadarImageUrls = CustomRadarUrlHelper.Normalize(s.CustomRadarImageUrls);
+        MigrateLegacyCustomRadarUrls(s);
+
+        foreach (var loc in s.Locations)
+            loc.CustomRadarImageUrls = CustomRadarUrlHelper.Normalize(loc.CustomRadarImageUrls);
+    }
+
+    private static void MigrateLegacyCustomRadarUrls(AppSettings s)
+    {
+        var legacy = CustomRadarUrlHelper.Normalize(s.CustomRadarImageUrls);
+        if (legacy.Count == 0)
+            return;
+
+        foreach (var loc in s.Locations)
+        {
+            if (loc.CustomRadarImageUrls.Count == 0)
+                loc.CustomRadarImageUrls = [.. legacy];
+        }
+
+        s.CustomRadarImageUrls = [];
     }
 }

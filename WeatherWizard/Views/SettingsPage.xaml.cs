@@ -15,7 +15,9 @@ public sealed partial class SettingsPage : Page
     private bool _suppressWindowPlacementEvents;
     private bool _suppressRadarFlipSecondsEvents;
     private bool _suppressCustomRadarUrlEvents;
+    private bool _suppressCustomRadarTabEvents;
     private readonly TextBox[] _customRadarUrlBoxes;
+    private SavedLocation? _customRadarEditingLocation;
 
     public SettingsPage()
     {
@@ -49,9 +51,7 @@ public sealed partial class SettingsPage : Page
         RadarFlipSecondsBox.Value = App.Current.Locations.Settings.RadarFlipIntervalSeconds;
         _suppressRadarFlipSecondsEvents = false;
 
-        _suppressCustomRadarUrlEvents = true;
-        SyncCustomRadarUrlBoxes();
-        _suppressCustomRadarUrlEvents = false;
+        RebuildCustomRadarTabs();
 
         AppTheme.Apply(App.Current.Locations.Settings);
 
@@ -60,6 +60,7 @@ public sealed partial class SettingsPage : Page
 
     protected override async void OnNavigatedFrom(NavigationEventArgs e)
     {
+        PersistCurrentCustomRadarUrls();
         await PersistAsync().ConfigureAwait(true);
         base.OnNavigatedFrom(e);
     }
@@ -236,6 +237,7 @@ public sealed partial class SettingsPage : Page
         var loc = hit.ToSavedLocation();
         _locations.Add(loc);
         await PersistAsync().ConfigureAwait(true);
+        RebuildCustomRadarTabs();
         CityBox.Text = string.Empty;
         StateBox.Text = string.Empty;
         ZipBox.Text = string.Empty;
@@ -249,6 +251,7 @@ public sealed partial class SettingsPage : Page
 
         _locations.Remove(loc);
         await PersistAsync().ConfigureAwait(true);
+        RebuildCustomRadarTabs();
     }
 
     private async void OnMoveUp(object sender, RoutedEventArgs e)
@@ -262,6 +265,7 @@ public sealed partial class SettingsPage : Page
 
         _locations.Move(i, i - 1);
         await PersistAsync().ConfigureAwait(true);
+        RebuildCustomRadarTabs();
     }
 
     private async void OnMoveDown(object sender, RoutedEventArgs e)
@@ -275,6 +279,7 @@ public sealed partial class SettingsPage : Page
 
         _locations.Move(i, i + 1);
         await PersistAsync().ConfigureAwait(true);
+        RebuildCustomRadarTabs();
     }
 
     private async void OnDarkModeToggled(object sender, RoutedEventArgs e)
@@ -341,25 +346,120 @@ public sealed partial class SettingsPage : Page
         await App.Current.Locations.SaveAsync().ConfigureAwait(true);
     }
 
-    private void SyncCustomRadarUrlBoxes()
+    private void RebuildCustomRadarTabs()
     {
-        var urls = App.Current.Locations.Settings.CustomRadarImageUrls;
-        for (var i = 0; i < _customRadarUrlBoxes.Length; i++)
-            _customRadarUrlBoxes[i].Text = i < urls.Count ? urls[i] : string.Empty;
+        var previousId = _customRadarEditingLocation?.Id;
+        PersistCurrentCustomRadarUrls();
+
+        _suppressCustomRadarTabEvents = true;
+        CustomRadarLocationTabs.TabItems.Clear();
+
+        if (_locations.Count == 0)
+        {
+            CustomRadarLocationTabs.Visibility = Visibility.Collapsed;
+            CustomRadarNoLocationsText.Visibility = Visibility.Visible;
+            SetCustomRadarUrlBoxesEnabled(false);
+            _customRadarEditingLocation = null;
+            ClearCustomRadarUrlBoxes();
+            _suppressCustomRadarTabEvents = false;
+            return;
+        }
+
+        CustomRadarLocationTabs.Visibility = Visibility.Visible;
+        CustomRadarNoLocationsText.Visibility = Visibility.Collapsed;
+        SetCustomRadarUrlBoxesEnabled(true);
+
+        foreach (var loc in _locations)
+        {
+            CustomRadarLocationTabs.TabItems.Add(new TabViewItem
+            {
+                Header = loc.TabLabel,
+                Tag = loc,
+            });
+        }
+
+        var selectIndex = 0;
+        if (previousId is Guid id)
+        {
+            for (var i = 0; i < _locations.Count; i++)
+            {
+                if (_locations[i].Id == id)
+                {
+                    selectIndex = i;
+                    break;
+                }
+            }
+        }
+
+        CustomRadarLocationTabs.SelectedIndex = selectIndex;
+        _suppressCustomRadarTabEvents = false;
+        LoadCustomRadarUrlsForSelectedTab();
+    }
+
+    private void OnCustomRadarTabSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressCustomRadarTabEvents)
+            return;
+
+        PersistCurrentCustomRadarUrls();
+        LoadCustomRadarUrlsForSelectedTab();
+    }
+
+    private void LoadCustomRadarUrlsForSelectedTab()
+    {
+        _customRadarEditingLocation = null;
+
+        if (CustomRadarLocationTabs.SelectedItem is TabViewItem tab && tab.Tag is SavedLocation loc)
+            _customRadarEditingLocation = loc;
+
+        _suppressCustomRadarUrlEvents = true;
+        if (_customRadarEditingLocation is null)
+        {
+            ClearCustomRadarUrlBoxes();
+        }
+        else
+        {
+            var urls = _customRadarEditingLocation.CustomRadarImageUrls;
+            for (var i = 0; i < _customRadarUrlBoxes.Length; i++)
+                _customRadarUrlBoxes[i].Text = i < urls.Count ? urls[i] : string.Empty;
+        }
+
+        _suppressCustomRadarUrlEvents = false;
+    }
+
+    private void PersistCurrentCustomRadarUrls()
+    {
+        if (_customRadarEditingLocation is null)
+            return;
+
+        _customRadarEditingLocation.CustomRadarImageUrls =
+            CustomRadarUrlHelper.Normalize(_customRadarUrlBoxes.Select(b => b.Text));
+    }
+
+    private void ClearCustomRadarUrlBoxes()
+    {
+        foreach (var box in _customRadarUrlBoxes)
+            box.Text = string.Empty;
+    }
+
+    private void SetCustomRadarUrlBoxesEnabled(bool enabled)
+    {
+        foreach (var box in _customRadarUrlBoxes)
+            box.IsEnabled = enabled;
     }
 
     private async void OnCustomRadarUrlChanged(object sender, TextChangedEventArgs e)
     {
-        if (_suppressCustomRadarUrlEvents)
+        if (_suppressCustomRadarUrlEvents || _customRadarEditingLocation is null)
             return;
 
-        var raw = _customRadarUrlBoxes.Select(b => b.Text).ToList();
-        App.Current.Locations.Settings.CustomRadarImageUrls = CustomRadarUrlHelper.Normalize(raw);
+        PersistCurrentCustomRadarUrls();
         await App.Current.Locations.SaveAsync().ConfigureAwait(true);
     }
 
     private async Task PersistAsync()
     {
+        PersistCurrentCustomRadarUrls();
         App.Current.Locations.Settings.Locations = _locations.ToList();
         await App.Current.Locations.SaveAsync().ConfigureAwait(true);
     }

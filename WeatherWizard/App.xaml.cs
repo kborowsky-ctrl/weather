@@ -23,10 +23,35 @@ public partial class App : Application
     /// <summary>Root host grid (title chrome + frame); theme applies here.</summary>
     public FrameworkElement? ThemeScope { get; private set; }
 
-    public Window? MainWindow => window;
+    public Grid? TitleChromeHost { get; private set; }
+
+    private bool _suppressWindowFitResize;
+    private bool _userSizedMainWindow;
+
+    /// <summary>User dragged the window edge; stop auto height fitting for this session.</summary>
+    public void NotifyMainWindowUserSized() => _userSizedMainWindow = true;
+
+    /// <summary>Shrink window height to the active weather tab content (until the user resizes manually).</summary>
+    public void FitMainWindowToContent()
+    {
+        if (_userSizedMainWindow || window is null || _rootFrame?.Content is not MainPage mainPage)
+            return;
+
+        _suppressWindowFitResize = true;
+        try
+        {
+            WindowContentFitHelper.FitMainWindowHeight(window, mainPage, TitleChromeHost);
+        }
+        finally
+        {
+            _suppressWindowFitResize = false;
+        }
+    }
 
     /// <summary>Primary navigation frame (main / settings).</summary>
     public Frame? RootFrame => _rootFrame;
+
+    public Window? MainWindow => window;
 
     public LocationRepository Locations { get; } = new();
 
@@ -103,13 +128,23 @@ public partial class App : Application
         window.Closed -= OnWindowClosed;
         window.Closed += OnWindowClosed;
 
+        window.AppWindow.Changed += OnAppWindowChanged;
+
         window.ExtendsContentIntoTitleBar = true;
         if (_titleBarHost is not null)
             window.SetTitleBar(_titleBarHost);
 
         await Locations.LoadAsync().ConfigureAwait(true);
 
-        WindowPlacementHelper.Apply(window, Locations.Settings);
+        _suppressWindowFitResize = true;
+        try
+        {
+            WindowPlacementHelper.Apply(window, Locations.Settings);
+        }
+        finally
+        {
+            _suppressWindowFitResize = false;
+        }
 
         if (_rootFrame is null)
             return;
@@ -142,7 +177,15 @@ public partial class App : Application
         if (window is null)
             return;
 
-        WindowPlacementHelper.Apply(window, Locations.Settings);
+        _suppressWindowFitResize = true;
+        try
+        {
+            WindowPlacementHelper.Apply(window, Locations.Settings);
+        }
+        finally
+        {
+            _suppressWindowFitResize = false;
+        }
     }
 
     /// <summary>Runs a full weather refresh (same as the in-page Refresh link).</summary>
@@ -178,6 +221,7 @@ public partial class App : Application
         {
             Padding = new Thickness(0, 0, 132, 0),
         };
+        TitleChromeHost = titleChrome;
         if (Current.Resources["AppPageBackgroundBrush"] is Brush pageBg)
             titleChrome.Background = pageBg;
         else
@@ -231,12 +275,23 @@ public partial class App : Application
         if (host.Children[0] is Grid titleGrid && titleGrid.Children.Count >= 1 && titleGrid.Children[0] is Grid titleHost)
             _titleBarHost = titleHost;
 
+        if (host.Children[0] is Grid titleChrome)
+            TitleChromeHost = titleChrome;
+
         if (host.Children[1] is Border shell && shell.Child is Frame frame)
             _rootFrame = frame;
     }
 
+    private void OnAppWindowChanged(AppWindow sender, AppWindowChangedEventArgs args)
+    {
+        if (args.DidSizeChange && !_suppressWindowFitResize)
+            _userSizedMainWindow = true;
+    }
+
     private async void OnWindowClosed(object sender, WindowEventArgs args)
     {
+        if (window?.AppWindow is AppWindow aw)
+            aw.Changed -= OnAppWindowChanged;
         _trayIcon?.Dispose();
         _trayIcon = null;
 
