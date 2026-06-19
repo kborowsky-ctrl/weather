@@ -49,13 +49,15 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <TextBlock
+                        <views:ConditionWeatherIcon
                             Grid.Row="0"
                             Grid.RowSpan="3"
                             Grid.Column="0"
                             VerticalAlignment="Center"
-                            FontSize="34"
-                            Text="{Binding CurrentConditions.ConditionEmoji}" />
+                            IconSize="34"
+                            IsNighttime="{Binding CurrentConditions.IsNighttime}"
+                            PhaseTime="{Binding CurrentConditions.ObservationTime}"
+                            WeatherCode="{Binding CurrentConditions.WeatherCode}" />
 
                         <TextBlock
                             Grid.Row="0"
@@ -274,12 +276,14 @@
                                                 TextWrapping="WrapWholeWords" />
                                         </StackPanel>
 
-                                        <TextBlock
+                                        <views:ConditionWeatherIcon
                                             Grid.Column="1"
                                             HorizontalAlignment="Center"
                                             VerticalAlignment="Center"
-                                            FontSize="22"
-                                            Text="{Binding ConditionEmoji}" />
+                                            IconSize="22"
+                                            IsNighttime="{Binding IsNightPeriod}"
+                                            PhaseTime="{Binding MoonPhaseAt}"
+                                            WeatherCode="{Binding WeatherCode}" />
 
                                         <views:AdaptiveForecastConditionsTextBlock
                                             Grid.Column="2"

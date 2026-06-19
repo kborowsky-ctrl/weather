@@ -127,6 +127,13 @@ public sealed class OpenMeteoForecastClient(HttpClientFactory http, OpenMeteoAir
                 var sr = i < sunrises.Count ? sunrises[i] : null;
                 var ss = i < sunsets.Count ? sunsets[i] : null;
 
+                DateTimeOffset? sunriseAt = null;
+                DateTimeOffset? sunsetAt = null;
+                if (!string.IsNullOrWhiteSpace(sr) && TryParseOpenMeteoInstant(sr, out var srDto))
+                    sunriseAt = srDto;
+                if (!string.IsNullOrWhiteSpace(ss) && TryParseOpenMeteoInstant(ss, out var ssDto))
+                    sunsetAt = ssDto;
+
                 var label = date == DateOnly.FromDateTime(DateTime.Today)
                     ? "Today"
                     : date.ToString("ddd", CultureInfo.CurrentCulture);
@@ -151,6 +158,8 @@ public sealed class OpenMeteoForecastClient(HttpClientFactory http, OpenMeteoAir
                     PrecipChance = pop,
                     SunriseText = ForecastFormatters.FormatIsoLocalTime(sr),
                     SunsetText = ForecastFormatters.FormatIsoLocalTime(ss),
+                    SunriseAt = sunriseAt,
+                    SunsetAt = sunsetAt,
                 });
                 i++;
             }
@@ -178,9 +187,24 @@ public sealed class OpenMeteoForecastClient(HttpClientFactory http, OpenMeteoAir
             hourlyPressureHpa = hourly.GetHourlyDoubleArray("surface_pressure");
         }
 
+        var nowTime = ResolveCurrentObservationTime(root, tzOffset);
+        var sunriseToday = days.Count > 0 ? days[0].SunriseAt : null;
+        var sunsetToday = days.Count > 0 ? days[0].SunsetAt : null;
+        var isNight = SolarTimeHelper.IsNight(nowTime, sunriseToday, sunsetToday);
+
+        if (panel.WeatherCode >= 0)
+        {
+            panel = panel with
+            {
+                ConditionEmoji = WeatherCodeInterpreter.Emoji(panel.WeatherCode, isNight, nowTime),
+                ObservationTime = nowTime,
+                SunriseToday = sunriseToday,
+                SunsetToday = sunsetToday,
+            };
+        }
+
         if (panel.WeatherCode >= 0 && hourlyTimes.Count > 0 && hourlyPressureHpa.Count > 0)
         {
-            var nowTime = ResolveCurrentObservationTime(root, tzOffset);
             var nowIdx = ClosestHourlyIndex(hourlyTimes, nowTime);
 
             var pastIdx = nowIdx - 3;
@@ -284,6 +308,9 @@ public sealed class OpenMeteoForecastClient(HttpClientFactory http, OpenMeteoAir
         var hiLo = $"H {Math.Round(maxT)}° / L {Math.Round(minT)}°";
         var popDisp = maxPop is int px ? $"{px}%" : "—";
         var dateOnly = DateOnly.FromDateTime(sunset.LocalDateTime);
+        var phaseAt = DateTimeOffset.Now;
+        if (phaseAt < sunset || phaseAt >= sunriseEnd)
+            phaseAt = sunset;
 
         return new ForecastDayItem
         {
@@ -292,7 +319,7 @@ public sealed class OpenMeteoForecastClient(HttpClientFactory http, OpenMeteoAir
             PeriodTitle = periodTitle,
             DateSubtitle = ForecastDisplayFormat.OrdinalDate(dateOnly),
             ConditionsDisplay = WeatherCodeInterpreter.Describe(wxCode),
-            ConditionEmoji = WeatherCodeInterpreter.Emoji(wxCode),
+            ConditionEmoji = WeatherCodeInterpreter.Emoji(wxCode, isNight: true, phaseAt),
             HiLoDisplay = hiLo,
             PrecipPercentDisplay = popDisp,
             WeatherCode = wxCode,
@@ -300,6 +327,8 @@ public sealed class OpenMeteoForecastClient(HttpClientFactory http, OpenMeteoAir
             HighF = maxT,
             LowF = minT,
             PrecipChance = maxPop,
+            IsNightPeriod = true,
+            MoonPhaseAt = phaseAt,
         };
     }
 

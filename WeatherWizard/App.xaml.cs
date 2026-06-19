@@ -195,17 +195,20 @@ public partial class App : Application
             mp.RequestRefresh();
     }
 
-    /// <summary>Tray icon follows the first location’s WMO weather code.</summary>
-    public void UpdateTrayWeatherIcon(int weatherCode, string? conditionEmoji = null)
+    /// <summary>Tray icon for the first location; red badge when <paramref name="hasActiveAlert"/>.</summary>
+    public void UpdateTrayWeatherIcon(CurrentConditionsPanel current, bool hasActiveAlert)
     {
         if (_trayIcon is null || window is null)
             return;
 
+        var at = current.ObservationTime ?? DateTimeOffset.Now;
+        var isNight = SolarTimeHelper.IsNight(at, current.SunriseToday, current.SunsetToday);
+
         var dq = window.DispatcherQueue;
         if (dq.HasThreadAccess)
-            _trayIcon.SetWeatherIcon(weatherCode, conditionEmoji);
+            _trayIcon.SetWeatherIcon(current.WeatherCode, hasActiveAlert, isNight, at);
         else
-            _ = dq.TryEnqueue(() => _trayIcon.SetWeatherIcon(weatherCode, conditionEmoji));
+            _ = dq.TryEnqueue(() => _trayIcon.SetWeatherIcon(current.WeatherCode, hasActiveAlert, isNight, at));
     }
 
     private Grid BuildWindowHost()

@@ -46,6 +46,15 @@ public sealed class ForecastDayItem
 
     public string? SunsetText { get; init; }
 
+    public DateTimeOffset? SunriseAt { get; init; }
+
+    public DateTimeOffset? SunsetAt { get; init; }
+
+    /// <summary>Night period (e.g. Tonight) — use moon icon for clear skies.</summary>
+    public bool IsNightPeriod { get; init; }
+
+    public DateTimeOffset? MoonPhaseAt { get; init; }
+
     public string SunLine
     {
         get

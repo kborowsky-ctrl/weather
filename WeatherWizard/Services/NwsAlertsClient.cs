@@ -77,9 +77,27 @@ public sealed class NwsAlertsClient(HttpClientFactory http)
 
             var link = NwsAlertPublicLink.Resolve(webFromApi, vtec, sent, latitude, longitude);
 
-            list.Add(new WeatherAlertItem { Id = id, Headline = headline, Summary = summary, Link = link });
+            string? areaDesc = null;
+            if (props.TryGetProperty("areaDesc", out var areaEl) && areaEl.ValueKind == JsonValueKind.String)
+                areaDesc = areaEl.GetString();
+
+            DateTimeOffset? ends = null;
+            if (props.TryGetProperty("ends", out var endsEl) && endsEl.ValueKind == JsonValueKind.String
+                && DateTimeOffset.TryParse(endsEl.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var endsDto))
+                ends = endsDto;
+
+            list.Add(new WeatherAlertItem
+            {
+                Id = id,
+                Headline = headline,
+                Summary = summary,
+                Event = rawEvent.Trim(),
+                AreaDesc = areaDesc,
+                Ends = ends,
+                Link = link,
+            });
         }
 
-        return list;
+        return NwsAlertRedundancyFilter.CollapseOverlapping(list);
     }
 }

@@ -86,17 +86,16 @@ public sealed class TaskTrayIcon : IDisposable
 
     private const nuint SubclassId = 0x5757;
 
-    /// <summary>Updates the tray glyph from Open-Meteo WMO <paramref name="weatherCode"/> (vector art).</summary>
-    public void SetWeatherIcon(int weatherCode, string? conditionEmoji = null)
+    /// <summary>Updates the tray glyph from weather code, day/night, and optional alert badge.</summary>
+    public void SetWeatherIcon(int weatherCode, bool hasActiveAlert = false, bool isNight = false, DateTimeOffset at = default)
     {
-        _ = conditionEmoji;
         if (!_iconAdded)
             return;
 
         Bitmap nextBmp;
         try
         {
-            nextBmp = TrayWeatherIconFactory.CreateBitmap(weatherCode);
+            nextBmp = TrayWeatherIconFactory.CreateBitmap(weatherCode, isNight, at, hasActiveAlert);
         }
         catch
         {
@@ -127,7 +126,7 @@ public sealed class TaskTrayIcon : IDisposable
             uFlags = NifMessage | NifIcon | NifTip,
             uCallbackMessage = WmAppTray,
             hIcon = _iconHicon,
-            szTip = "WeatherWizard",
+            szTip = hasActiveAlert ? "WeatherWizard — active alert" : "WeatherWizard",
         };
 
         if (!Shell_NotifyIconW(NimModify, ref data))

@@ -167,8 +167,6 @@ public sealed partial class MainPage : Page
                 }
 
                 vm.CurrentConditions = bundle.Current;
-                if (isFirstLocation)
-                    App.Current.UpdateTrayWeatherIcon(bundle.Current.WeatherCode, bundle.Current.ConditionEmoji);
 
                 vm.ForecastDays.Clear();
                 foreach (var d in listDays)
@@ -179,6 +177,9 @@ public sealed partial class MainPage : Page
                     alerts = await app.Nws.GetActiveForPointAsync(loc.Latitude, loc.Longitude).ConfigureAwait(true);
                 else
                     alerts = [];
+
+                if (isFirstLocation)
+                    App.Current.UpdateTrayWeatherIcon(bundle.Current, alerts.Count > 0);
 
                 if (!loc.IsUnitedStates)
                 {

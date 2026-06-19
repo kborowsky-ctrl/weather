@@ -40,12 +40,21 @@ public static partial class NwsAlertHeadlineFormatter
         return string.IsNullOrEmpty(s) ? original : s;
     }
 
-    /// <summary>Short label for UI: event name, or headline with dates/times removed.</summary>
+    /// <summary>Short label for UI: headline text with dates/times removed, else event name.</summary>
     public static string ToSummary(string? eventName, string? headline)
     {
+        var fromHeadline = HeadlineToShortLabel(headline);
+        if (!string.IsNullOrWhiteSpace(fromHeadline))
+            return fromHeadline;
+
         if (!string.IsNullOrWhiteSpace(eventName))
             return eventName.Trim();
 
+        return "";
+    }
+
+    private static string HeadlineToShortLabel(string? headline)
+    {
         if (string.IsNullOrWhiteSpace(headline))
             return "";
 

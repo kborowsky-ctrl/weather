@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Drawing.Text;
 
 namespace WeatherWizard.Services;
 
@@ -11,29 +12,31 @@ public static class TrayWeatherIconFactory
 {
     private const int S = 32;
 
-    public static Bitmap CreateBitmap(int weatherCode)
+    public static Bitmap CreateBitmap(int weatherCode, bool isNight = false, DateTimeOffset at = default, bool hasActiveAlert = false)
     {
         var bmp = new Bitmap(S, S, PixelFormat.Format32bppArgb);
         using var g = Graphics.FromImage(bmp);
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.PixelOffsetMode = PixelOffsetMode.HighQuality;
         g.Clear(Color.Transparent);
-        DrawForCode(g, weatherCode);
+        DrawForCode(g, weatherCode, isNight, at);
+        if (hasActiveAlert)
+            DrawAlertBadge(g);
         return bmp;
     }
 
-    private static void DrawForCode(Graphics g, int code)
+    private static void DrawForCode(Graphics g, int code, bool isNight, DateTimeOffset at)
     {
         if (code < 0)
         {
-            DrawPartlyCloudy(g);
+            DrawPartlyCloudy(g, isNight, at);
             return;
         }
 
         switch (code)
         {
-            case 0: DrawClear(g); break;
-            case 1 or 2: DrawPartlyCloudy(g); break;
+            case 0: DrawClear(g, isNight, at); break;
+            case 1 or 2: DrawPartlyCloudy(g, isNight, at); break;
             case 3: DrawOvercast(g); break;
             case 45 or 48: DrawFog(g); break;
             case 51 or 53 or 55: DrawDrizzle(g); break;
@@ -44,29 +47,60 @@ public static class TrayWeatherIconFactory
             case 80 or 81 or 82: DrawShowers(g); break;
             case 85 or 86: DrawSnowShowers(g); break;
             case 95 or 96 or 99: DrawThunder(g); break;
-            default: DrawPartlyCloudy(g); break;
+            default: DrawPartlyCloudy(g, isNight, at); break;
         }
     }
 
-    private static void DrawClear(Graphics g)
+    private static void DrawClear(Graphics g, bool isNight, DateTimeOffset at)
     {
-        using var sun = new SolidBrush(Color.FromArgb(255, 255, 210, 0));
-        g.FillEllipse(sun, 3, 3, 26, 26);
-        using var rays = new Pen(Color.FromArgb(240, 255, 210, 0), 2.4f) { EndCap = LineCap.Round };
-        for (var i = 0; i < 8; i++)
+        if (isNight)
+            MoonPhaseIconRenderer.DrawMoonPhase(g, 3, 3, 26, MoonPhaseCalculator.Phase01(at), MoonPhaseIconRenderer.TrayPalette);
+        else
         {
-            var a = i * (MathF.PI / 4f);
-            var c = MathF.Cos(a);
-            var s = MathF.Sin(a);
-            g.DrawLine(rays, 16 + c * 7f, 16 + s * 7f, 16 + c * 15f, 16 + s * 15f);
+            using var sun = new SolidBrush(Color.FromArgb(255, 255, 210, 0));
+            g.FillEllipse(sun, 3, 3, 26, 26);
+            using var rays = new Pen(Color.FromArgb(240, 255, 210, 0), 2.4f) { EndCap = LineCap.Round };
+            for (var i = 0; i < 8; i++)
+            {
+                var a = i * (MathF.PI / 4f);
+                var c = MathF.Cos(a);
+                var s = MathF.Sin(a);
+                g.DrawLine(rays, 16 + c * 7f, 16 + s * 7f, 16 + c * 15f, 16 + s * 15f);
+            }
         }
     }
 
-    private static void DrawPartlyCloudy(Graphics g)
+    private static void DrawPartlyCloudy(Graphics g, bool isNight, DateTimeOffset at)
     {
-        using var sun = new SolidBrush(Color.FromArgb(255, 255, 210, 0));
-        g.FillEllipse(sun, 0, 0, 17, 17);
+        if (isNight)
+            MoonPhaseIconRenderer.DrawMoonPhase(g, 0, 0, 17, MoonPhaseCalculator.Phase01(at), MoonPhaseIconRenderer.TrayPalette);
+        else
+        {
+            using var sun = new SolidBrush(Color.FromArgb(255, 255, 210, 0));
+            g.FillEllipse(sun, 0, 0, 17, 17);
+        }
+
         DrawCloud(g, CloudLight, 1, 9, 30, 22);
+    }
+
+    private static void DrawAlertBadge(Graphics g)
+    {
+        const float radius = 8.5f;
+        const float cx = S - 9f;
+        const float cy = S - 9f;
+
+        using var red = new SolidBrush(Color.FromArgb(255, 220, 38, 38));
+        g.FillEllipse(red, cx - radius, cy - radius, radius * 2, radius * 2);
+
+        using var font = new Font("Segoe UI", 12f, FontStyle.Bold, GraphicsUnit.Pixel);
+        g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+        using var white = new SolidBrush(Color.White);
+        var format = new StringFormat
+        {
+            Alignment = StringAlignment.Center,
+            LineAlignment = StringAlignment.Center,
+        };
+        g.DrawString("!", font, white, cx, cy + 0.5f, format);
     }
 
     private static void DrawOvercast(Graphics g)

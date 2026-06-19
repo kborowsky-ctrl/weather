@@ -114,6 +114,8 @@ public sealed class NwsGridForecastClient(HttpClientFactory http)
         var code = NwsShortForecastInterpreter.ApproximateWmoCode(shortFc);
         var hiLo = isDaytime ? $"H {Math.Round(temp)}°" : $"L {Math.Round(temp)}°";
         var popDisp = pop is int px ? $"{px}%" : "—";
+        var isNightPeriod = !isDaytime;
+        var phaseAt = start;
 
         return new ForecastDayItem
         {
@@ -122,7 +124,7 @@ public sealed class NwsGridForecastClient(HttpClientFactory http)
             PeriodTitle = name.Trim(),
             DateSubtitle = ForecastDisplayFormat.OrdinalDate(date),
             ConditionsDisplay = string.IsNullOrWhiteSpace(shortFc) ? "—" : shortFc.Trim(),
-            ConditionEmoji = WeatherCodeInterpreter.Emoji(code),
+            ConditionEmoji = WeatherCodeInterpreter.Emoji(code, isNightPeriod, phaseAt),
             HiLoDisplay = hiLo,
             PrecipPercentDisplay = popDisp,
             WeatherCode = code,
@@ -130,6 +132,8 @@ public sealed class NwsGridForecastClient(HttpClientFactory http)
             HighF = temp,
             LowF = temp,
             PrecipChance = pop,
+            IsNightPeriod = isNightPeriod,
+            MoonPhaseAt = phaseAt,
         };
     }
 }

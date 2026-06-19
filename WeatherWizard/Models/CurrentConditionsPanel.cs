@@ -1,5 +1,7 @@
 namespace WeatherWizard.Models;
 
+using WeatherWizard.Services;
+
 /// <summary>Two-column rows for the "now" panel (left | right per row), plus a weather glyph for the graphic row.</summary>
 public sealed record CurrentConditionsPanel(
     string Row1Left,
@@ -15,8 +17,13 @@ public sealed record CurrentConditionsPanel(
     string ConditionEmoji,
     int WeatherCode,
     string PressureArrow = "",
-    PressureTrendKind PressureTrend = PressureTrendKind.Unknown)
+    PressureTrendKind PressureTrend = PressureTrendKind.Unknown,
+    DateTimeOffset? ObservationTime = null,
+    DateTimeOffset? SunriseToday = null,
+    DateTimeOffset? SunsetToday = null)
 {
+    public bool IsNighttime =>
+        SolarTimeHelper.IsNight(ObservationTime ?? DateTimeOffset.Now, SunriseToday, SunsetToday);
     public static CurrentConditionsPanel Loading { get; } = new(
         "Loading…", "",
         "", "",

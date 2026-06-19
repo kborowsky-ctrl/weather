@@ -56,7 +56,20 @@ public static class WeatherCodeInterpreter
     };
 
     /// <summary>Single emoji for a compact “now” graphic (Open-Meteo WMO codes).</summary>
-    public static string Emoji(int code) => code switch
+    public static string Emoji(int code) => EmojiCore(code);
+
+    /// <summary>Day/night aware emoji; clear/partly-clear codes use moon phase after sunset.</summary>
+    public static string Emoji(int code, bool isNight, DateTimeOffset at)
+    {
+        if (isNight && UsesSunDisc(code))
+            return MoonPhaseCalculator.Emoji(at);
+
+        return EmojiCore(code);
+    }
+
+    public static bool UsesSunDisc(int code) => code is 0 or 1 or 2;
+
+    private static string EmojiCore(int code) => code switch
     {
         0 => "☀️",
         1 => "🌤️",
