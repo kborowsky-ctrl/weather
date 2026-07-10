@@ -116,6 +116,7 @@ public sealed partial class MainPage : Page
                 Header = loc.TabLabel,
                 Tag = loc.Id,
                 MinHeight = 0,
+                IsClosable = true,
             };
 
             var view = new LocationWeatherView { VerticalAlignment = VerticalAlignment.Top };
@@ -241,6 +242,20 @@ public sealed partial class MainPage : Page
 
     /// <summary>Triggers a full refresh (same as the toolbar refresh control).</summary>
     public void RequestRefresh() => _ = RefreshAllAsync();
+
+    private async void OnLocationTabCloseRequested(TabView sender, TabViewTabCloseRequestedEventArgs args)
+    {
+        if (args.Tab is not TabViewItem tab || tab.Tag is not Guid id)
+            return;
+
+        var locations = App.Current.Locations.Settings.Locations;
+        var index = locations.FindIndex(l => l.Id == id);
+        if (index < 0)
+            return;
+
+        locations.RemoveAt(index);
+        await App.Current.Locations.SaveAsync().ConfigureAwait(true);
+    }
 
     private void OnOpenSettings(object sender, RoutedEventArgs e)
     {

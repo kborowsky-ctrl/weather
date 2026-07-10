@@ -14,6 +14,7 @@
             x:Name="LocationTabs"
             Background="{ThemeResource AppPageBackgroundBrush}"
             IsAddTabButtonVisible="False"
+            TabCloseRequested="OnLocationTabCloseRequested"
             TabWidthMode="SizeToContent"
             VerticalAlignment="Top">
             <TabView.TabStripFooter>
