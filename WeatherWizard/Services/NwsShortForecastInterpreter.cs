@@ -23,9 +23,9 @@ public static class NwsShortForecastInterpreter
         if (t.Contains("fog"))
             return 45;
 
-        if (t.Contains("mostly sunny"))
+        if (t.Contains("mostly sunny") || t.Contains("mostly clear"))
             return 1;
-        if (t.Contains("partly sunny") || t.Contains("partly cloudy"))
+        if (t.Contains("partly sunny") || t.Contains("partly cloudy") || t.Contains("partly clear"))
             return 2;
         if (t.Contains("mostly cloudy"))
             return 3;

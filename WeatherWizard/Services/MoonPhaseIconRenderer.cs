@@ -55,10 +55,16 @@ public static class MoonPhaseIconRenderer
 
     private static void DrawLitPortionOnly(Graphics g, float x, float y, float size, double phase, Color lit)
     {
-        if (phase < 0.03 || phase > 0.97)
-            return;
-
         using var litBrush = new SolidBrush(lit);
+
+        // New moon: light outline so Wx / conditions still show a moon glyph.
+        if (phase < 0.03 || phase > 0.97)
+        {
+            var thickness = Math.Max(1.5f, size * 0.09f);
+            using var pen = new Pen(lit, thickness);
+            g.DrawEllipse(pen, x + thickness * 0.5f, y + thickness * 0.5f, size - thickness, size - thickness);
+            return;
+        }
 
         if (phase > 0.47 && phase < 0.53)
         {
@@ -66,18 +72,48 @@ public static class MoonPhaseIconRenderer
             return;
         }
 
-        using var moonPath = new GraphicsPath();
-        moonPath.AddEllipse(x, y, size, size);
+        // Illuminated disk via hemisphere + terminator ellipse (works at quarters).
+        using var disk = new GraphicsPath();
+        disk.AddEllipse(x, y, size, size);
+        using var litRegion = new Region(disk);
 
-        var offset = (float)(Math.Cos(phase * 2 * Math.PI) * size * 0.85);
-        using var shadowPath = new GraphicsPath();
+        var cx = x + size * 0.5f;
+        var cos = Math.Cos(phase * 2 * Math.PI);
+        var termW = Math.Max(1f, (float)(Math.Abs(cos) * size));
+        var termX = cx - termW * 0.5f;
+
+        using var terminator = new GraphicsPath();
+        terminator.AddEllipse(termX, y, termW, size);
+
         if (phase < 0.5)
-            shadowPath.AddEllipse(x - offset, y, size, size);
-        else
-            shadowPath.AddEllipse(x + offset, y, size, size);
+        {
+            using var right = new Region(new RectangleF(cx, y, size * 0.5f + 1f, size));
+            litRegion.Intersect(right);
 
-        using var litRegion = new Region(moonPath);
-        litRegion.Exclude(shadowPath);
+            if (phase < 0.25)
+                litRegion.Exclude(terminator);
+            else
+            {
+                using var termReg = new Region(terminator);
+                termReg.Intersect(new Region(disk));
+                litRegion.Union(termReg);
+            }
+        }
+        else
+        {
+            using var left = new Region(new RectangleF(x, y, size * 0.5f + 1f, size));
+            litRegion.Intersect(left);
+
+            if (phase > 0.75)
+                litRegion.Exclude(terminator);
+            else
+            {
+                using var termReg = new Region(terminator);
+                termReg.Intersect(new Region(disk));
+                litRegion.Union(termReg);
+            }
+        }
+
         g.FillRegion(litBrush, litRegion);
     }
 
