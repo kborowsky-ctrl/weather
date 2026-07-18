@@ -1,24 +1,53 @@
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace WeatherWizard.Services;
 
-public static class AppVersion
+public static partial class AppVersion
 {
     public static string Display
     {
         get
         {
-            var asm = Assembly.GetExecutingAssembly();
-            var info = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
-            if (!string.IsNullOrWhiteSpace(info))
-            {
-                var plus = info.IndexOf('+', StringComparison.Ordinal);
-                var version = plus >= 0 ? info[..plus] : info;
-                return $"v{version}";
-            }
-
-            var v = asm.GetName().Version;
-            return v is null ? "v0.0.0" : $"v{v.Major}.{v.Minor}.{v.Build}";
+            var v = Semantic;
+            return $"v{v.Major}.{v.Minor}.{v.Build}";
         }
     }
+
+    public static Version Semantic
+    {
+        get
+        {
+            var asm = Assembly.GetExecutingAssembly();
+            var info = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+            if (!string.IsNullOrWhiteSpace(info) && TryParse(info, out var fromInfo))
+                return Normalize(fromInfo);
+
+            var v = asm.GetName().Version;
+            return v is null ? new Version(0, 0, 0) : Normalize(v);
+        }
+    }
+
+    public static bool TryParse(string? raw, out Version version)
+    {
+        version = new Version(0, 0, 0);
+        if (string.IsNullOrWhiteSpace(raw))
+            return false;
+
+        var s = raw.Trim();
+        if (s.StartsWith('v') || s.StartsWith('V'))
+            s = s[1..];
+
+        var cut = VersionCutRegex().Match(s);
+        if (cut.Success)
+            s = cut.Groups[1].Value;
+
+        return Version.TryParse(s, out version!);
+    }
+
+    private static Version Normalize(Version v) =>
+        new(v.Major, v.Minor, Math.Max(v.Build, 0));
+
+    [GeneratedRegex(@"^(\d+(?:\.\d+){1,3})", RegexOptions.CultureInvariant)]
+    private static partial Regex VersionCutRegex();
 }

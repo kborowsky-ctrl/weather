@@ -28,140 +28,24 @@
             ZoomMode="Disabled">
             <StackPanel Spacing="8">
                 <TextBlock
-                    FontSize="16"
+                    FontSize="18"
                     FontWeight="SemiBold"
                     Foreground="{ThemeResource AppBodyTextBrush}"
-                    Text="Appearance" />
-                <ToggleSwitch
-                    x:Name="DarkModeSwitch"
-                    Header="Dark mode (black background, light text)"
-                    OffContent="Light"
-                    OnContent="Dark"
-                    Toggled="OnDarkModeToggled" />
+                    Text="Locations" />
                 <TextBlock
                     FontSize="11"
                     Foreground="{ThemeResource AppMutedTextBrush}"
-                    Text="Light mode uses a white background with dark text. Dark mode uses a black background with light text."
+                    Text="Locations are saved automatically when you add, remove, or reorder. Use Remove to delete a saved location."
                     TextWrapping="WrapWholeWords" />
+                <NumberBox
+                    x:Name="RefreshMinutesBox"
+                    Header="Refresh interval (minutes)"
+                    Minimum="5"
+                    Maximum="120"
+                    SpinButtonPlacementMode="Inline"
+                    ValueChanged="OnRefreshMinutesChanged" />
 
-                <TextBlock
-                    Margin="0,12,0,0"
-                    FontSize="16"
-                    FontWeight="SemiBold"
-                    Foreground="{ThemeResource AppBodyTextBrush}"
-                    Text="Window" />
-                <ComboBox
-                    x:Name="WindowPlacementBox"
-                    Header="Position when the app starts"
-                    SelectionChanged="OnWindowPlacementChanged">
-                    <ComboBoxItem Tag="RememberLast" Content="Remember last position and size" />
-                    <ComboBoxItem Tag="Center" Content="Center on screen" />
-                    <ComboBoxItem Tag="TopLeft" Content="Top left of work area" />
-                    <ComboBoxItem Tag="TopRight" Content="Top right of work area" />
-                    <ComboBoxItem Tag="BottomLeft" Content="Bottom left of work area" />
-                    <ComboBoxItem Tag="BottomRight" Content="Bottom right of work area" />
-                    <ComboBoxItem Tag="Left" Content="Left side (vertically centered)" />
-                    <ComboBoxItem Tag="Right" Content="Right side (vertically centered)" />
-                </ComboBox>
-                <TextBlock
-                    FontSize="11"
-                    Foreground="{ThemeResource AppMutedTextBrush}"
-                    Text="“Remember last” saves the window spot when you close the app; width and height are always saved for the next launch. Other options only set the corner or center using that size."
-                    TextWrapping="WrapWholeWords" />
-                <ToggleSwitch
-                    x:Name="StartWithWindowsSwitch"
-                    Margin="0,8,0,0"
-                    Header="Start WeatherWizard when Windows starts"
-                    OffContent="Off"
-                    OnContent="On"
-                    Toggled="OnStartWithWindowsToggled" />
-                <TextBlock
-                    FontSize="11"
-                    Foreground="{ThemeResource AppMutedTextBrush}"
-                    Text="Adds a per-user startup entry. The app opens in the notification area as usual. Turn this off here, or remove WeatherWizard from Windows Settings → Apps → Startup."
-                    TextWrapping="WrapWholeWords" />
-
-                <Border
-                    Margin="0,8,0,0"
-                    Padding="0,12,0,0"
-                    BorderBrush="{ThemeResource AppSectionBorderBrush}"
-                    BorderThickness="0,1,0,0">
-                    <StackPanel Spacing="8">
-                        <TextBlock
-                            FontSize="16"
-                            FontWeight="SemiBold"
-                            Foreground="{ThemeResource AppBodyTextBrush}"
-                            Text="NWS radar" />
-                        <NumberBox
-                            x:Name="RadarFlipSecondsBox"
-                            Header="Flip interval (seconds)"
-                            Minimum="3"
-                            Maximum="120"
-                            SpinButtonPlacementMode="Inline"
-                            ValueChanged="OnRadarFlipSecondsChanged" />
-                        <TextBlock
-                            FontSize="11"
-                            Foreground="{ThemeResource AppMutedTextBrush}"
-                            Text="The radar alternates between the regional view, local zoom, and any custom images for each location."
-                            TextWrapping="WrapWholeWords" />
-                        <TextBlock
-                            FontSize="12"
-                            FontWeight="SemiBold"
-                            Foreground="{ThemeResource AppBodyTextBrush}"
-                            Text="Custom image URLs per location (up to 5)" />
-                        <TextBlock
-                            FontSize="11"
-                            Foreground="{ThemeResource AppMutedTextBrush}"
-                            Text="Pick a location tab below. Direct links to GIF, PNG, or JPG images fill the radar panel (centered), like the built-in NWS views."
-                            TextWrapping="WrapWholeWords" />
-                        <TextBlock
-                            x:Name="CustomRadarNoLocationsText"
-                            FontSize="11"
-                            Foreground="{ThemeResource AppMutedTextBrush}"
-                            Text="Add a location below to configure custom radar images."
-                            TextWrapping="WrapWholeWords"
-                            Visibility="Collapsed" />
-                        <TabView
-                            x:Name="CustomRadarLocationTabs"
-                            IsAddTabButtonVisible="False"
-                            SelectionChanged="OnCustomRadarTabSelectionChanged"
-                            TabWidthMode="SizeToContent"
-                            Visibility="Collapsed" />
-                        <TextBox x:Name="CustomRadarUrl1" Header="Image 1" PlaceholderText="https://example.com/radar.gif" />
-                        <TextBox x:Name="CustomRadarUrl2" Header="Image 2" PlaceholderText="Optional" />
-                        <TextBox x:Name="CustomRadarUrl3" Header="Image 3" PlaceholderText="Optional" />
-                        <TextBox x:Name="CustomRadarUrl4" Header="Image 4" PlaceholderText="Optional" />
-                        <TextBox x:Name="CustomRadarUrl5" Header="Image 5" PlaceholderText="Optional" />
-                    </StackPanel>
-                </Border>
-
-                <Border
-                    Margin="0,8,0,0"
-                    Padding="0,12,0,0"
-                    BorderBrush="{ThemeResource AppSectionBorderBrush}"
-                    BorderThickness="0,1,0,0">
-                    <StackPanel Spacing="8">
-                        <TextBlock
-                            FontSize="18"
-                            FontWeight="SemiBold"
-                            Foreground="{ThemeResource AppBodyTextBrush}"
-                            Text="Locations" />
-                        <TextBlock
-                            FontSize="11"
-                            Foreground="{ThemeResource AppMutedTextBrush}"
-                            Text="Locations are saved automatically when you add, remove, or reorder. Use Remove to delete a saved location."
-                            TextWrapping="WrapWholeWords" />
-                        <NumberBox
-                            x:Name="RefreshMinutesBox"
-                            Header="Refresh interval (minutes)"
-                            Minimum="5"
-                            Maximum="120"
-                            SpinButtonPlacementMode="Inline"
-                            ValueChanged="OnRefreshMinutesChanged" />
-                    </StackPanel>
-                </Border>
-
-                <StackPanel Margin="0,8,0,0" Spacing="8">
+                <StackPanel Margin="0,4,0,0" Spacing="8">
                     <TextBox x:Name="CityBox" Header="City" PlaceholderText="e.g. Austin" />
                     <TextBox x:Name="StateBox" Header="State / region (optional)" PlaceholderText="e.g. TX" />
                     <TextBox x:Name="ZipBox" Header="ZIP (optional)" PlaceholderText="e.g. 78701" />
@@ -208,9 +92,198 @@
 
                 <TextBlock
                     x:Name="StatusText"
-                    Margin="0,8,0,0"
+                    Margin="0,4,0,0"
                     Foreground="{ThemeResource AppMutedTextBrush}"
                     TextWrapping="WrapWholeWords" />
+
+                <Border
+                    Margin="0,8,0,0"
+                    Padding="0,12,0,0"
+                    BorderBrush="{ThemeResource AppSectionBorderBrush}"
+                    BorderThickness="0,1,0,0">
+                    <StackPanel Spacing="8">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource AppBodyTextBrush}"
+                            Text="Alerts" />
+                        <ToggleSwitch
+                            x:Name="SpeakWeatherAlertsSwitch"
+                            Header="Speak weather warnings aloud"
+                            OffContent="Off"
+                            OnContent="On"
+                            Toggled="OnSpeakWeatherAlertsToggled" />
+                        <TextBlock
+                            FontSize="11"
+                            Foreground="{ThemeResource AppMutedTextBrush}"
+                            Text="When on, WeatherWizard announces new and cancelled weather alerts. Alert text still appears in the app either way."
+                            TextWrapping="WrapWholeWords" />
+                    </StackPanel>
+                </Border>
+
+                <Border
+                    Margin="0,8,0,0"
+                    Padding="0,12,0,0"
+                    BorderBrush="{ThemeResource AppSectionBorderBrush}"
+                    BorderThickness="0,1,0,0">
+                    <StackPanel Spacing="8">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource AppBodyTextBrush}"
+                            Text="Appearance" />
+                        <ToggleSwitch
+                            x:Name="DarkModeSwitch"
+                            Header="Dark mode (black background, light text)"
+                            OffContent="Light"
+                            OnContent="Dark"
+                            Toggled="OnDarkModeToggled" />
+                        <TextBlock
+                            FontSize="11"
+                            Foreground="{ThemeResource AppMutedTextBrush}"
+                            Text="Light mode uses a white background with dark text. Dark mode uses a black background with light text."
+                            TextWrapping="WrapWholeWords" />
+                    </StackPanel>
+                </Border>
+
+                <Border
+                    Margin="0,8,0,0"
+                    Padding="0,12,0,0"
+                    BorderBrush="{ThemeResource AppSectionBorderBrush}"
+                    BorderThickness="0,1,0,0">
+                    <StackPanel Spacing="8">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource AppBodyTextBrush}"
+                            Text="Window" />
+                        <ComboBox
+                            x:Name="WindowPlacementBox"
+                            Header="Position when the app starts"
+                            SelectionChanged="OnWindowPlacementChanged">
+                            <ComboBoxItem Tag="RememberLast" Content="Remember last position and size" />
+                            <ComboBoxItem Tag="Center" Content="Center on screen" />
+                            <ComboBoxItem Tag="TopLeft" Content="Top left of work area" />
+                            <ComboBoxItem Tag="TopRight" Content="Top right of work area" />
+                            <ComboBoxItem Tag="BottomLeft" Content="Bottom left of work area" />
+                            <ComboBoxItem Tag="BottomRight" Content="Bottom right of work area" />
+                            <ComboBoxItem Tag="Left" Content="Left side (vertically centered)" />
+                            <ComboBoxItem Tag="Right" Content="Right side (vertically centered)" />
+                        </ComboBox>
+                        <TextBlock
+                            FontSize="11"
+                            Foreground="{ThemeResource AppMutedTextBrush}"
+                            Text="“Remember last” saves the window spot when you close the app; width and height are always saved for the next launch. Other options only set the corner or center using that size."
+                            TextWrapping="WrapWholeWords" />
+                        <ToggleSwitch
+                            x:Name="StartWithWindowsSwitch"
+                            Margin="0,8,0,0"
+                            Header="Start WeatherWizard when Windows starts"
+                            OffContent="Off"
+                            OnContent="On"
+                            Toggled="OnStartWithWindowsToggled" />
+                        <TextBlock
+                            FontSize="11"
+                            Foreground="{ThemeResource AppMutedTextBrush}"
+                            Text="Adds a per-user startup entry. The app opens in the notification area as usual. Turn this off here, or remove WeatherWizard from Windows Settings → Apps → Startup."
+                            TextWrapping="WrapWholeWords" />
+                    </StackPanel>
+                </Border>
+
+                <Border
+                    Margin="0,8,0,0"
+                    Padding="0,12,0,0"
+                    BorderBrush="{ThemeResource AppSectionBorderBrush}"
+                    BorderThickness="0,1,0,0">
+                    <StackPanel Spacing="8">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource AppBodyTextBrush}"
+                            Text="Updates" />
+                        <TextBlock
+                            x:Name="UpdateVersionText"
+                            FontSize="11"
+                            Foreground="{ThemeResource AppMutedTextBrush}"
+                            TextWrapping="WrapWholeWords" />
+                        <ToggleSwitch
+                            x:Name="CheckUpdatesOnStartupSwitch"
+                            Header="Check for updates when the app starts"
+                            OffContent="Off"
+                            OnContent="On"
+                            Toggled="OnCheckUpdatesOnStartupToggled" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button
+                                x:Name="CheckUpdatesButton"
+                                Click="OnCheckUpdatesClick"
+                                Content="Check for updates" />
+                            <Button
+                                x:Name="DownloadUpdateButton"
+                                Click="OnDownloadUpdateClick"
+                                Content="Download &amp; install"
+                                Visibility="Collapsed" />
+                        </StackPanel>
+                        <TextBlock
+                            x:Name="UpdateStatusText"
+                            FontSize="11"
+                            Foreground="{ThemeResource AppMutedTextBrush}"
+                            TextWrapping="WrapWholeWords" />
+                    </StackPanel>
+                </Border>
+
+                <Border
+                    Margin="0,8,0,0"
+                    Padding="0,12,0,0"
+                    BorderBrush="{ThemeResource AppSectionBorderBrush}"
+                    BorderThickness="0,1,0,0">
+                    <StackPanel Spacing="8">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource AppBodyTextBrush}"
+                            Text="NWS radar" />
+                        <NumberBox
+                            x:Name="RadarFlipSecondsBox"
+                            Header="Flip interval (seconds)"
+                            Minimum="3"
+                            Maximum="120"
+                            SpinButtonPlacementMode="Inline"
+                            ValueChanged="OnRadarFlipSecondsChanged" />
+                        <TextBlock
+                            FontSize="11"
+                            Foreground="{ThemeResource AppMutedTextBrush}"
+                            Text="The radar alternates between the regional view, local zoom, and any custom images for each location."
+                            TextWrapping="WrapWholeWords" />
+                        <TextBlock
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource AppBodyTextBrush}"
+                            Text="Custom image URLs per location (up to 5)" />
+                        <TextBlock
+                            FontSize="11"
+                            Foreground="{ThemeResource AppMutedTextBrush}"
+                            Text="Pick a location tab below. Direct links to GIF, PNG, or JPG images fill the radar panel (centered), like the built-in NWS views."
+                            TextWrapping="WrapWholeWords" />
+                        <TextBlock
+                            x:Name="CustomRadarNoLocationsText"
+                            FontSize="11"
+                            Foreground="{ThemeResource AppMutedTextBrush}"
+                            Text="Add a location above to configure custom radar images."
+                            TextWrapping="WrapWholeWords"
+                            Visibility="Collapsed" />
+                        <TabView
+                            x:Name="CustomRadarLocationTabs"
+                            IsAddTabButtonVisible="False"
+                            SelectionChanged="OnCustomRadarTabSelectionChanged"
+                            TabWidthMode="SizeToContent"
+                            Visibility="Collapsed" />
+                        <TextBox x:Name="CustomRadarUrl1" Header="Image 1" PlaceholderText="https://example.com/radar.gif" />
+                        <TextBox x:Name="CustomRadarUrl2" Header="Image 2" PlaceholderText="Optional" />
+                        <TextBox x:Name="CustomRadarUrl3" Header="Image 3" PlaceholderText="Optional" />
+                        <TextBox x:Name="CustomRadarUrl4" Header="Image 4" PlaceholderText="Optional" />
+                        <TextBox x:Name="CustomRadarUrl5" Header="Image 5" PlaceholderText="Optional" />
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
     </Grid>

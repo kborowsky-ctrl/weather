@@ -34,6 +34,12 @@ public sealed class AppSettings
     /// <summary>Launch WeatherWizard when the user signs in to Windows.</summary>
     public bool StartWithWindows { get; set; }
 
+    /// <summary>Check GitHub Releases for a newer Setup EXE when the app starts.</summary>
+    public bool CheckForUpdatesOnStartup { get; set; } = true;
+
+    /// <summary>Speak new/cancelled weather alerts aloud. Default on.</summary>
+    public bool SpeakWeatherAlerts { get; set; } = true;
+
     /// <summary>Seconds between NWS radar / custom image flips (3–120).</summary>
     public int RadarFlipIntervalSeconds { get; set; } = 8;
 

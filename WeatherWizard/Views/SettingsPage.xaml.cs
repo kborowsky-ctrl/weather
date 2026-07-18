@@ -13,7 +13,10 @@ public sealed partial class SettingsPage : Page
     private bool _suppressRefreshMinutesEvents;
     private bool _suppressDarkModeEvents;
     private bool _suppressStartWithWindowsEvents;
+    private bool _suppressCheckUpdatesEvents;
+    private bool _suppressSpeakAlertsEvents;
     private bool _suppressWindowPlacementEvents;
+    private AppUpdateInfo? _pendingUpdate;
     private bool _suppressRadarFlipSecondsEvents;
     private bool _suppressCustomRadarUrlEvents;
     private bool _suppressCustomRadarTabEvents;
@@ -44,9 +47,21 @@ public sealed partial class SettingsPage : Page
         DarkModeSwitch.IsOn = AppTheme.IsDark(App.Current.Locations.Settings);
         _suppressDarkModeEvents = false;
 
+        _suppressSpeakAlertsEvents = true;
+        SpeakWeatherAlertsSwitch.IsOn = App.Current.Locations.Settings.SpeakWeatherAlerts;
+        _suppressSpeakAlertsEvents = false;
+
         _suppressStartWithWindowsEvents = true;
         StartWithWindowsSwitch.IsOn = App.Current.Locations.Settings.StartWithWindows;
         _suppressStartWithWindowsEvents = false;
+
+        _suppressCheckUpdatesEvents = true;
+        CheckUpdatesOnStartupSwitch.IsOn = App.Current.Locations.Settings.CheckForUpdatesOnStartup;
+        _suppressCheckUpdatesEvents = false;
+        UpdateVersionText.Text = $"Installed version: {AppVersion.Display}";
+        UpdateStatusText.Text = string.Empty;
+        DownloadUpdateButton.Visibility = Visibility.Collapsed;
+        _pendingUpdate = null;
 
         _suppressWindowPlacementEvents = true;
         SyncWindowPlacementCombo();
@@ -287,6 +302,18 @@ public sealed partial class SettingsPage : Page
         RebuildCustomRadarTabs();
     }
 
+    private async void OnSpeakWeatherAlertsToggled(object sender, RoutedEventArgs e)
+    {
+        if (_suppressSpeakAlertsEvents)
+            return;
+
+        App.Current.Locations.Settings.SpeakWeatherAlerts = SpeakWeatherAlertsSwitch.IsOn;
+        await App.Current.Locations.SaveAsync(raiseChanged: false).ConfigureAwait(true);
+        StatusText.Text = SpeakWeatherAlertsSwitch.IsOn
+            ? "Weather warnings will be spoken aloud."
+            : "Weather warning voice announcements are off.";
+    }
+
     private async void OnDarkModeToggled(object sender, RoutedEventArgs e)
     {
         if (_suppressDarkModeEvents)
@@ -320,6 +347,96 @@ public sealed partial class SettingsPage : Page
             StatusText.Text = $"Could not update startup setting: {ex.Message}";
         }
     }
+
+    private async void OnCheckUpdatesOnStartupToggled(object sender, RoutedEventArgs e)
+    {
+        if (_suppressCheckUpdatesEvents)
+            return;
+
+        App.Current.Locations.Settings.CheckForUpdatesOnStartup = CheckUpdatesOnStartupSwitch.IsOn;
+        await App.Current.Locations.SaveAsync(raiseChanged: false).ConfigureAwait(true);
+    }
+
+    private async void OnCheckUpdatesClick(object sender, RoutedEventArgs e)
+    {
+        CheckUpdatesButton.IsEnabled = false;
+        DownloadUpdateButton.Visibility = Visibility.Collapsed;
+        _pendingUpdate = null;
+        UpdateStatusText.Text = "Checking GitHub for updates…";
+        try
+        {
+            var update = await App.Current.Updates.CheckAsync().ConfigureAwait(true);
+            _pendingUpdate = update;
+            if (update is null)
+            {
+                UpdateStatusText.Text =
+                    "No GitHub release found yet. Publish a Release with WeatherWizard-Setup-win-x64.exe attached.";
+                return;
+            }
+
+            if (!update.IsNewer)
+            {
+                UpdateStatusText.Text =
+                    $"You are up to date ({AppVersion.Display}). Latest release is {FormatVersion(update.Latest)}.";
+                return;
+            }
+
+            UpdateStatusText.Text =
+                $"Update available: {FormatVersion(update.Latest)} (you have {FormatVersion(update.Current)}).";
+            DownloadUpdateButton.Visibility = string.IsNullOrWhiteSpace(update.SetupDownloadUrl)
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+
+            await AppUpdatePrompt.ShowIfNewerAsync(XamlRoot, update, quietWhenCurrent: false).ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            UpdateStatusText.Text = $"Update check failed: {ex.Message}";
+        }
+        finally
+        {
+            CheckUpdatesButton.IsEnabled = true;
+        }
+    }
+
+    private async void OnDownloadUpdateClick(object sender, RoutedEventArgs e)
+    {
+        if (_pendingUpdate is null || string.IsNullOrWhiteSpace(_pendingUpdate.SetupDownloadUrl))
+        {
+            UpdateStatusText.Text = "Check for updates first.";
+            return;
+        }
+
+        DownloadUpdateButton.IsEnabled = false;
+        UpdateStatusText.Text = "Downloading installer…";
+        try
+        {
+            await App.Current.Updates.DownloadAndLaunchSetupAsync(_pendingUpdate).ConfigureAwait(true);
+            UpdateStatusText.Text = "Installer started. Close WeatherWizard when Setup asks to update files.";
+            var exit = new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Title = "Installer started",
+                Content = "Close WeatherWizard now so Setup can update files?",
+                PrimaryButtonText = "Close app",
+                CloseButtonText = "Keep running",
+                DefaultButton = ContentDialogButton.Primary,
+            };
+            if (await exit.ShowAsync() == ContentDialogResult.Primary)
+                Application.Current.Exit();
+        }
+        catch (Exception ex)
+        {
+            UpdateStatusText.Text = $"Download failed: {ex.Message}";
+            GitHubUpdateChecker.OpenReleasePage(_pendingUpdate);
+        }
+        finally
+        {
+            DownloadUpdateButton.IsEnabled = true;
+        }
+    }
+
+    private static string FormatVersion(Version v) => $"v{v.Major}.{v.Minor}.{Math.Max(v.Build, 0)}";
 
     private void SyncWindowPlacementCombo()
     {

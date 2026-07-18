@@ -73,6 +73,8 @@ public partial class App : Application
 
     public AlertSpeechCoordinator AlertSpeech { get; }
 
+    public GitHubUpdateChecker Updates { get; }
+
     /// <summary>
     /// Initializes the singleton application object.  This is the first line of authored code
     /// executed, and as such is the logical equivalent of main() or WinMain().
@@ -90,6 +92,7 @@ public partial class App : Application
         NwsGridForecast = new NwsGridForecastClient(Http);
         Speech = new SpeechService();
         AlertSpeech = new AlertSpeechCoordinator(Speech);
+        Updates = new GitHubUpdateChecker(Http);
     }
 
     /// <summary>
@@ -186,6 +189,25 @@ public partial class App : Application
         }
 
         AppTheme.Apply(Locations.Settings);
+
+        if (Locations.Settings.CheckForUpdatesOnStartup)
+            _ = CheckForUpdatesOnStartupAsync();
+    }
+
+    private async Task CheckForUpdatesOnStartupAsync()
+    {
+        try
+        {
+            // Let the main UI settle before showing a dialog.
+            await Task.Delay(1500).ConfigureAwait(true);
+            var update = await Updates.CheckAsync().ConfigureAwait(true);
+            var root = window?.Content?.XamlRoot;
+            await AppUpdatePrompt.ShowIfNewerAsync(root, update, quietWhenCurrent: true).ConfigureAwait(true);
+        }
+        catch
+        {
+            // Startup checks are best-effort (offline, rate limit, etc.).
+        }
     }
 
     /// <summary>Re-applies size/position after changing window placement in settings.</summary>

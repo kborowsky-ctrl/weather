@@ -77,4 +77,9 @@ if ($LASTEXITCODE -ne 0) { throw "ISCC failed (exit $LASTEXITCODE)" }
 $setup = Join-Path $repoRoot 'dist\WeatherWizard-Setup-win-x64.exe'
 if (-not (Test-Path $setup)) { throw "Expected installer not found: $setup" }
 Write-Host "Created: $setup"
+Write-Host ""
+Write-Host "To publish an update on GitHub:"
+Write-Host "  1. Create a Release tagged like v1.0.24 (must be newer than AppVersion)"
+Write-Host "  2. Attach this file as: WeatherWizard-Setup-win-x64.exe"
+Write-Host "  3. Users with Check for updates will see it automatically"
 Write-Host 'Done.'
