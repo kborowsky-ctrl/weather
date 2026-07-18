@@ -135,6 +135,19 @@ public partial class App : Application
             window.SetTitleBar(_titleBarHost);
 
         await Locations.LoadAsync().ConfigureAwait(true);
+        var startWithWindows = StartupLaunchHelper.SyncFromSettings(Locations.Settings.StartWithWindows);
+        if (startWithWindows != Locations.Settings.StartWithWindows)
+        {
+            Locations.Settings.StartWithWindows = startWithWindows;
+            try
+            {
+                await Locations.SaveAsync(raiseChanged: false).ConfigureAwait(true);
+            }
+            catch
+            {
+                // Best-effort; registry entry already present.
+            }
+        }
 
         _suppressWindowFitResize = true;
         try
@@ -145,6 +158,10 @@ public partial class App : Application
         {
             _suppressWindowFitResize = false;
         }
+
+        // Keep the user's last manual size; otherwise auto-fit would overwrite it on every launch.
+        if (Locations.Settings.WindowSizeUserAdjusted)
+            _userSizedMainWindow = true;
 
         if (_rootFrame is null)
             return;
@@ -285,14 +302,60 @@ public partial class App : Application
             _rootFrame = frame;
     }
 
+    private DispatcherTimer? _geometrySaveTimer;
+
     private void OnAppWindowChanged(AppWindow sender, AppWindowChangedEventArgs args)
     {
-        if (args.DidSizeChange && !_suppressWindowFitResize)
+        if ((!args.DidSizeChange && !args.DidPositionChange) || _suppressWindowFitResize)
+            return;
+
+        if (args.DidSizeChange)
+        {
             _userSizedMainWindow = true;
+            Locations.Settings.WindowSizeUserAdjusted = true;
+        }
+
+        SchedulePersistWindowGeometry();
+    }
+
+    private void SchedulePersistWindowGeometry()
+    {
+        if (window is null)
+            return;
+
+        _geometrySaveTimer ??= new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+        _geometrySaveTimer.Tick -= OnGeometrySaveTick;
+        _geometrySaveTimer.Tick += OnGeometrySaveTick;
+        _geometrySaveTimer.Stop();
+        _geometrySaveTimer.Start();
+    }
+
+    private async void OnGeometrySaveTick(object? sender, object e)
+    {
+        _geometrySaveTimer?.Stop();
+        if (window is null)
+            return;
+
+        WindowPlacementHelper.PersistWindowGeometry(window, Locations.Settings);
+        try
+        {
+            await Locations.SaveAsync(raiseChanged: false).ConfigureAwait(true);
+        }
+        catch
+        {
+            // Best-effort persist while resizing.
+        }
     }
 
     private async void OnWindowClosed(object sender, WindowEventArgs args)
     {
+        if (_geometrySaveTimer is not null)
+        {
+            _geometrySaveTimer.Tick -= OnGeometrySaveTick;
+            _geometrySaveTimer.Stop();
+            _geometrySaveTimer = null;
+        }
+
         if (window?.AppWindow is AppWindow aw)
             aw.Changed -= OnAppWindowChanged;
         _trayIcon?.Dispose();

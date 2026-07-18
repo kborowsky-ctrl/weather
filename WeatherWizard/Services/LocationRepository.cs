@@ -8,6 +8,8 @@ namespace WeatherWizard.Services;
 /// Persists settings to disk. Uses System.IO (not WinRT ApplicationData) so unpackaged
 /// WinUI apps (WindowsPackageType None) save reliably; ApplicationData often throws
 /// "operation is not valid due to the current state of the object" in that configuration.
+/// Settings live under %LocalAppData%\WeatherWizard (not next to the EXE), so a fresh PC
+/// starts with zero locations; reinstalling on the same PC keeps existing locations unless cleared.
 /// </summary>
 public sealed class LocationRepository
 {

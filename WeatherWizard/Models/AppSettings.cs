@@ -28,6 +28,12 @@ public sealed class AppSettings
 
     public int? WindowHeightPixels { get; set; }
 
+    /// <summary>True after the user manually resizes; skip auto height-fit on later launches.</summary>
+    public bool WindowSizeUserAdjusted { get; set; }
+
+    /// <summary>Launch WeatherWizard when the user signs in to Windows.</summary>
+    public bool StartWithWindows { get; set; }
+
     /// <summary>Seconds between NWS radar / custom image flips (3–120).</summary>
     public int RadarFlipIntervalSeconds { get; set; } = 8;
 

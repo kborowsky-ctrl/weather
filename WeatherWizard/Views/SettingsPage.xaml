@@ -68,6 +68,18 @@
                     Foreground="{ThemeResource AppMutedTextBrush}"
                     Text="“Remember last” saves the window spot when you close the app; width and height are always saved for the next launch. Other options only set the corner or center using that size."
                     TextWrapping="WrapWholeWords" />
+                <ToggleSwitch
+                    x:Name="StartWithWindowsSwitch"
+                    Margin="0,8,0,0"
+                    Header="Start WeatherWizard when Windows starts"
+                    OffContent="Off"
+                    OnContent="On"
+                    Toggled="OnStartWithWindowsToggled" />
+                <TextBlock
+                    FontSize="11"
+                    Foreground="{ThemeResource AppMutedTextBrush}"
+                    Text="Adds a per-user startup entry. The app opens in the notification area as usual. Turn this off here, or remove WeatherWizard from Windows Settings → Apps → Startup."
+                    TextWrapping="WrapWholeWords" />
 
                 <Border
                     Margin="0,8,0,0"

@@ -12,6 +12,7 @@ public sealed partial class SettingsPage : Page
     private readonly ObservableCollection<SavedLocation> _locations = new();
     private bool _suppressRefreshMinutesEvents;
     private bool _suppressDarkModeEvents;
+    private bool _suppressStartWithWindowsEvents;
     private bool _suppressWindowPlacementEvents;
     private bool _suppressRadarFlipSecondsEvents;
     private bool _suppressCustomRadarUrlEvents;
@@ -42,6 +43,10 @@ public sealed partial class SettingsPage : Page
         _suppressDarkModeEvents = true;
         DarkModeSwitch.IsOn = AppTheme.IsDark(App.Current.Locations.Settings);
         _suppressDarkModeEvents = false;
+
+        _suppressStartWithWindowsEvents = true;
+        StartWithWindowsSwitch.IsOn = App.Current.Locations.Settings.StartWithWindows;
+        _suppressStartWithWindowsEvents = false;
 
         _suppressWindowPlacementEvents = true;
         SyncWindowPlacementCombo();
@@ -290,6 +295,30 @@ public sealed partial class SettingsPage : Page
         App.Current.Locations.Settings.Theme = DarkModeSwitch.IsOn ? "Dark" : "Light";
         AppTheme.Apply(App.Current.Locations.Settings);
         await App.Current.Locations.SaveAsync(raiseChanged: false).ConfigureAwait(true);
+    }
+
+    private async void OnStartWithWindowsToggled(object sender, RoutedEventArgs e)
+    {
+        if (_suppressStartWithWindowsEvents)
+            return;
+
+        var enabled = StartWithWindowsSwitch.IsOn;
+        try
+        {
+            StartupLaunchHelper.Apply(enabled);
+            App.Current.Locations.Settings.StartWithWindows = enabled;
+            await App.Current.Locations.SaveAsync(raiseChanged: false).ConfigureAwait(true);
+            StatusText.Text = enabled
+                ? "WeatherWizard will start when you sign in to Windows."
+                : "WeatherWizard will no longer start with Windows.";
+        }
+        catch (Exception ex)
+        {
+            _suppressStartWithWindowsEvents = true;
+            StartWithWindowsSwitch.IsOn = !enabled;
+            _suppressStartWithWindowsEvents = false;
+            StatusText.Text = $"Could not update startup setting: {ex.Message}";
+        }
     }
 
     private void SyncWindowPlacementCombo()
