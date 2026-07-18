@@ -1,0 +1,1 @@
+This is a windows app to replace the non-working weathermate project. It's compact program that loads up current weather stats, forecast and radar images with more information that default windows weather applications.
