@@ -101,6 +101,10 @@ public sealed class NwsGridForecastClient(HttpClientFactory http)
         if (p.TryGetProperty("shortForecast", out var sf) && sf.ValueKind == JsonValueKind.String)
             shortFc = sf.GetString() ?? "";
 
+        var detailedFc = "";
+        if (p.TryGetProperty("detailedForecast", out var df) && df.ValueKind == JsonValueKind.String)
+            detailedFc = df.GetString() ?? "";
+
         int? pop = null;
         if (p.TryGetProperty("probabilityOfPrecipitation", out var popObj)
             && popObj.ValueKind == JsonValueKind.Object
@@ -111,7 +115,8 @@ public sealed class NwsGridForecastClient(HttpClientFactory http)
             pop = popInt;
         }
 
-        var code = NwsShortForecastInterpreter.ApproximateWmoCode(shortFc);
+        var code = NwsShortForecastInterpreter.ApproximateWmoCode(shortFc, detailedFc);
+        var conditions = NwsShortForecastInterpreter.PreferConditionsDisplay(shortFc, detailedFc, pop);
         var hiLo = isDaytime ? $"H {Math.Round(temp)}°" : $"L {Math.Round(temp)}°";
         var popDisp = pop is int px ? $"{px}%" : "—";
         var isNightPeriod = !isDaytime;
@@ -123,12 +128,12 @@ public sealed class NwsGridForecastClient(HttpClientFactory http)
             DayLabel = name.Trim(),
             PeriodTitle = name.Trim(),
             DateSubtitle = ForecastDisplayFormat.OrdinalDate(date),
-            ConditionsDisplay = string.IsNullOrWhiteSpace(shortFc) ? "—" : shortFc.Trim(),
+            ConditionsDisplay = conditions,
             ConditionEmoji = WeatherCodeInterpreter.Emoji(code, isNightPeriod, phaseAt),
             HiLoDisplay = hiLo,
             PrecipPercentDisplay = popDisp,
             WeatherCode = code,
-            Summary = shortFc.Trim(),
+            Summary = conditions,
             HighF = temp,
             LowF = temp,
             PrecipChance = pop,
