@@ -387,6 +387,12 @@ public sealed partial class SettingsPage : Page
                 ? Visibility.Collapsed
                 : Visibility.Visible;
 
+            if (string.IsNullOrWhiteSpace(update.SetupDownloadUrl))
+            {
+                UpdateStatusText.Text +=
+                    " Release has no Setup EXE asset — attach WeatherWizard-Setup-win-x64.exe on GitHub.";
+            }
+
             await AppUpdatePrompt.ShowIfNewerAsync(XamlRoot, update, quietWhenCurrent: false).ConfigureAwait(true);
         }
         catch (Exception ex)

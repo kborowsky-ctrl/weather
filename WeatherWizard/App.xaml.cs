@@ -69,6 +69,8 @@ public partial class App : Application
 
     public NwsGridForecastClient NwsGridForecast { get; }
 
+    public NwsRadarStationsClient NwsRadarStations { get; }
+
     public SpeechService Speech { get; }
 
     public AlertSpeechCoordinator AlertSpeech { get; }
@@ -90,6 +92,7 @@ public partial class App : Application
         Nws = new NwsAlertsClient(Http);
         NwsPoints = new NwsPointsClient(Http);
         NwsGridForecast = new NwsGridForecastClient(Http);
+        NwsRadarStations = new NwsRadarStationsClient(Http);
         Speech = new SpeechService();
         AlertSpeech = new AlertSpeechCoordinator(Speech);
         Updates = new GitHubUpdateChecker(Http);

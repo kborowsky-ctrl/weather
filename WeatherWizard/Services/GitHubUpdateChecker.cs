@@ -33,7 +33,11 @@ public sealed class GitHubUpdateChecker(HttpClientFactory http)
 
         using var resp = await http.Client.SendAsync(req, ct).ConfigureAwait(false);
         if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
-            return null;
+        {
+            throw new InvalidOperationException(
+                "GitHub returned 404 for releases. The repository may be private (update checks need a public repo), " +
+                "or there is no published (non-draft) release yet.");
+        }
 
         resp.EnsureSuccessStatusCode();
         await using var stream = await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
@@ -44,7 +48,8 @@ public sealed class GitHubUpdateChecker(HttpClientFactory http)
             ? tagEl.GetString() ?? ""
             : "";
         if (!AppVersion.TryParse(tag, out var latest))
-            return null;
+            throw new InvalidOperationException(
+                $"Could not parse release tag '{tag}'. Use a tag like v1.0.25.");
 
         var htmlUrl = root.TryGetProperty("html_url", out var htmlEl) && htmlEl.ValueKind == JsonValueKind.String
             ? htmlEl.GetString() ?? $"https://github.com/{Owner}/{Repo}/releases"

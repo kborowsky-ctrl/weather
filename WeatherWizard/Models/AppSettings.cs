@@ -41,7 +41,7 @@ public sealed class AppSettings
     public bool SpeakWeatherAlerts { get; set; } = true;
 
     /// <summary>Seconds between NWS radar / custom image flips (3–120).</summary>
-    public int RadarFlipIntervalSeconds { get; set; } = 8;
+    public int RadarFlipIntervalSeconds { get; set; } = 60;
 
     /// <summary>Legacy global custom radar URLs; migrated to each <see cref="SavedLocation"/> on load.</summary>
     public List<string> CustomRadarImageUrls { get; set; } = [];
