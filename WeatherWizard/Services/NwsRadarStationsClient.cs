@@ -25,10 +25,7 @@ public sealed class NwsRadarStationsClient(HttpClientFactory http)
 
             using var resp = await http.Client.SendAsync(req, ct).ConfigureAwait(false);
             if (!resp.IsSuccessStatusCode)
-            {
-                _cache[id] = null;
                 return null;
-            }
 
             await using var stream = await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
             using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false);
@@ -36,10 +33,7 @@ public sealed class NwsRadarStationsClient(HttpClientFactory http)
                 || !geom.TryGetProperty("coordinates", out var coords)
                 || coords.ValueKind != JsonValueKind.Array
                 || coords.GetArrayLength() < 2)
-            {
-                _cache[id] = null;
                 return null;
-            }
 
             var lon = coords[0].GetDouble();
             var lat = coords[1].GetDouble();
@@ -49,7 +43,7 @@ public sealed class NwsRadarStationsClient(HttpClientFactory http)
         }
         catch
         {
-            _cache[id] = null;
+            // Do not cache failures — allow a later retry.
             return null;
         }
     }

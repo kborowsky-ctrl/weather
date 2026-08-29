@@ -31,7 +31,7 @@ public static class AppUpdatePrompt
                 await ShowMessageAsync(
                     xamlRoot,
                     "Up to date",
-                    $"You are running {Format(update.Current)}. Latest on GitHub is {Format(update.Latest)}.").ConfigureAwait(true);
+                    $"You are running {AppVersion.Format(update.Current)}. Latest on GitHub is {AppVersion.Format(update.Latest)} (tag {update.TagName}).").ConfigureAwait(true);
             }
 
             return;
@@ -43,7 +43,8 @@ public static class AppUpdatePrompt
             XamlRoot = xamlRoot,
             Title = "Update available",
             Content =
-                $"WeatherWizard {Format(update.Latest)} is available (you have {Format(update.Current)})."
+                $"WeatherWizard {AppVersion.Format(update.Latest)} is available (you have {AppVersion.Format(update.Current)})."
+                + $"\nGitHub tag: {update.TagName}"
                 + (hasSetup
                     ? "\n\nDownload and run the installer? Close WeatherWizard when Setup asks."
                     : "\n\nOpen the GitHub release page to download?"),
@@ -113,6 +114,4 @@ public static class AppUpdatePrompt
         };
         await dialog.ShowAsync();
     }
-
-    private static string Format(Version v) => $"v{v.Major}.{v.Minor}.{Math.Max(v.Build, 0)}";
 }

@@ -89,6 +89,7 @@ public sealed partial class LocationWeatherView : UserControl
         }
 
         SyncAlertLinkVisibility();
+        SyncSeasonalOutlookVisibility();
         SyncErrorInfo();
         SyncPressureArrow();
         _ = NavigateMapAsync();
@@ -99,8 +100,13 @@ public sealed partial class LocationWeatherView : UserControl
         if (e.PropertyName is nameof(LocationWeatherViewModel.CurrentConditions))
             SyncPressureArrow();
 
-        if (e.PropertyName is nameof(LocationWeatherViewModel.AlertLink) or nameof(LocationWeatherViewModel.HasAlertLink))
+        if (e.PropertyName is nameof(LocationWeatherViewModel.ActiveAlerts) or nameof(LocationWeatherViewModel.HasAlertDetails))
             SyncAlertLinkVisibility();
+
+        if (e.PropertyName is nameof(LocationWeatherViewModel.SeasonalOutlook)
+            or nameof(LocationWeatherViewModel.HasSeasonalOutlook)
+            or nameof(LocationWeatherViewModel.SeasonalOutlookLinkText))
+            SyncSeasonalOutlookVisibility();
 
         if (e.PropertyName is nameof(LocationWeatherViewModel.ErrorBanner) or nameof(LocationWeatherViewModel.HasError))
             SyncErrorInfo();
@@ -119,9 +125,53 @@ public sealed partial class LocationWeatherView : UserControl
         if (_vm is null)
             return;
 
-        AlertDetailsLink.Visibility = _vm.HasAlertLink ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
-        if (_vm.AlertLink is not null)
-            AlertDetailsLink.NavigateUri = _vm.AlertLink;
+        AlertDetailsLink.Visibility = _vm.HasAlertDetails
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+    }
+
+    private void AlertDetailsLink_Click(object sender, RoutedEventArgs e)
+    {
+        if (_vm is null || !_vm.HasAlertDetails)
+            return;
+
+        var win = new AlertDetailsWindow(_vm.ActiveAlerts, _vm.Location.TabLabel);
+        win.Activate();
+    }
+
+    private void SyncSeasonalOutlookVisibility()
+    {
+        if (_vm is null)
+            return;
+
+        SeasonalOutlookLink.Content = _vm.SeasonalOutlookLinkText;
+
+        if (_vm.HasSeasonalOutlook && _vm.SeasonalOutlook is { } snap)
+        {
+            var code = snap.Target.Code;
+            SeasonalOutlookBadge.Background = new SolidColorBrush(SeasonalOutlookColors.BackgroundFor(code));
+            SeasonalOutlookLink.Foreground = new SolidColorBrush(SeasonalOutlookColors.ForegroundFor(code));
+            SeasonalOutlookBadge.BorderBrush = string.Equals(code, "DJF", StringComparison.OrdinalIgnoreCase)
+                ? Application.Current.Resources["AppSectionBorderBrush"] as Brush
+                : null;
+            SeasonalOutlookBadge.BorderThickness = string.Equals(code, "DJF", StringComparison.OrdinalIgnoreCase)
+                ? new Thickness(1)
+                : new Thickness(0);
+            SeasonalOutlookBadge.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            SeasonalOutlookBadge.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void SeasonalOutlookLink_Click(object sender, RoutedEventArgs e)
+    {
+        if (_vm?.SeasonalOutlook is null)
+            return;
+
+        var win = new SeasonalOutlookDetailsWindow(_vm.SeasonalOutlook, _vm.Location.TabLabel);
+        win.Activate();
     }
 
     private void SyncErrorInfo()
@@ -355,6 +405,17 @@ public sealed partial class LocationWeatherView : UserControl
         if (string.IsNullOrWhiteSpace(id))
             return;
 
+        // Prefer persisted site coords so local zoom can center on the zip/location immediately.
+        if (_vm.Location.NwsRadarStationLat is double savedLat
+            && _vm.Location.NwsRadarStationLon is double savedLon
+            && string.Equals(_vm.Location.NwsRadarStation, id, StringComparison.OrdinalIgnoreCase))
+        {
+            _radarSiteIdLoaded = id.Trim().ToUpperInvariant();
+            _radarSiteLat = savedLat;
+            _radarSiteLon = savedLon;
+            return;
+        }
+
         if (string.Equals(_radarSiteIdLoaded, id, StringComparison.OrdinalIgnoreCase)
             && _radarSiteLat is not null
             && _radarSiteLon is not null)
@@ -367,6 +428,16 @@ public sealed partial class LocationWeatherView : UserControl
         {
             _radarSiteLat = c.Lat;
             _radarSiteLon = c.Lon;
+            _vm.Location.NwsRadarStationLat = c.Lat;
+            _vm.Location.NwsRadarStationLon = c.Lon;
+            try
+            {
+                await App.Current.Locations.SaveAsync(raiseChanged: false).ConfigureAwait(true);
+            }
+            catch
+            {
+                // Non-fatal — zoom still works for this session.
+            }
         }
         else
         {
@@ -394,28 +465,27 @@ public sealed partial class LocationWeatherView : UserControl
                 h = MapRasterImage.ActualHeight;
             }
 
+            // Match Image layout size to the host so focus math and RenderTransform share one space.
+            if (w > 0 && h > 0)
+            {
+                MapRasterImage.Width = w;
+                MapRasterImage.Height = h;
+            }
+
             var viewCx = w > 0 ? w * 0.5 : 200;
             var viewCy = h > 0 ? h * 0.5 : 200;
             var focus = ResolveZoomFocusPoint(w, h, viewCx, viewCy);
 
-            var transform = new TransformGroup();
-            transform.Children.Add(new ScaleTransform
+            MapRasterImage.RenderTransformOrigin = new Point(0, 0);
+            MapRasterImage.RenderTransform = new MatrixTransform
             {
-                ScaleX = RadarZoomScale,
-                ScaleY = RadarZoomScale,
-                CenterX = focus.X,
-                CenterY = focus.Y,
-            });
-            // Keep the focus point in the middle of the panel after scaling.
-            transform.Children.Add(new TranslateTransform
-            {
-                X = viewCx - focus.X,
-                Y = viewCy - focus.Y,
-            });
-            MapRasterImage.RenderTransform = transform;
+                Matrix = NwsRadarLocalZoom.ZoomMatrix(focus, viewCx, viewCy, RadarZoomScale),
+            };
         }
         else
         {
+            MapRasterImage.Width = double.NaN;
+            MapRasterImage.Height = double.NaN;
             MapRasterImage.RenderTransform = null;
             MapRasterImage.HorizontalAlignment = HorizontalAlignment.Center;
             MapRasterImage.VerticalAlignment = VerticalAlignment.Center;

@@ -107,13 +107,36 @@
                                 TextWrapping="WrapWholeWords" />
                         </StackPanel>
 
-                        <TextBlock
+                        <StackPanel
                             Grid.Row="1"
+                            Grid.RowSpan="2"
                             Grid.Column="3"
-                            FontSize="11"
-                            Foreground="{ThemeResource AppBodyTextBrush}"
-                            Text="{Binding CurrentConditions.Row3Right}"
-                            TextWrapping="WrapWholeWords" />
+                            VerticalAlignment="Top"
+                            Spacing="4">
+                            <TextBlock
+                                FontSize="11"
+                                Foreground="{ThemeResource AppBodyTextBrush}"
+                                Text="{Binding CurrentConditions.Row3Right}"
+                                TextWrapping="WrapWholeWords" />
+                            <Border
+                                x:Name="SeasonalOutlookBadge"
+                                Padding="4,2"
+                                HorizontalAlignment="Left"
+                                CornerRadius="3"
+                                Visibility="Collapsed">
+                                <HyperlinkButton
+                                    x:Name="SeasonalOutlookLink"
+                                    MinHeight="0"
+                                    Padding="0"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Click="SeasonalOutlookLink_Click"
+                                    Content="{Binding SeasonalOutlookLinkText}"
+                                    FontSize="11" />
+                            </Border>
+                        </StackPanel>
 
                         <TextBlock
                             Grid.Row="2"
@@ -128,21 +151,6 @@
                             FontSize="11"
                             Foreground="{ThemeResource AppBodyTextBrush}"
                             Text="{Binding CurrentConditions.Row4Right}"
-                            TextWrapping="WrapWholeWords" />
-
-                        <TextBlock
-                            Grid.Row="3"
-                            Grid.Column="1"
-                            FontSize="11"
-                            Foreground="{ThemeResource AppBodyTextBrush}"
-                            Text="{Binding CurrentConditions.Row5Left}"
-                            TextWrapping="WrapWholeWords" />
-                        <TextBlock
-                            Grid.Row="3"
-                            Grid.Column="2"
-                            FontSize="11"
-                            Foreground="{ThemeResource AppBodyTextBrush}"
-                            Text="{Binding CurrentConditions.Row5Right}"
                             TextWrapping="WrapWholeWords" />
                     </Grid>
                 </StackPanel>
@@ -171,6 +179,7 @@
                             Grid.Column="1"
                             Padding="4,0"
                             VerticalAlignment="Center"
+                            Click="AlertDetailsLink_Click"
                             Content="Details"
                             Foreground="{ThemeResource AppBodyTextBrush}"
                             Visibility="Collapsed" />

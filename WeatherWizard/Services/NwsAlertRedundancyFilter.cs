@@ -16,7 +16,8 @@ public static class NwsAlertRedundancyFilter
         return alerts
             .GroupBy(Key, StringComparer.OrdinalIgnoreCase)
             .Select(g => g
-                .OrderByDescending(a => a.Ends ?? DateTimeOffset.MinValue)
+                .OrderByDescending(a => a.HasDetailText)
+                .ThenByDescending(a => a.Ends ?? DateTimeOffset.MinValue)
                 .ThenByDescending(a => a.Id, StringComparer.Ordinal))
             .Select(g => g.First())
             .ToList();

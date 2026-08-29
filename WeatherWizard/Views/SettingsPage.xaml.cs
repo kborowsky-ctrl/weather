@@ -377,12 +377,12 @@ public sealed partial class SettingsPage : Page
             if (!update.IsNewer)
             {
                 UpdateStatusText.Text =
-                    $"You are up to date ({AppVersion.Display}). Latest release is {FormatVersion(update.Latest)}.";
+                    $"You are up to date ({AppVersion.Display}). Latest release is {AppVersion.Format(update.Latest)} (tag {update.TagName}).";
                 return;
             }
 
             UpdateStatusText.Text =
-                $"Update available: {FormatVersion(update.Latest)} (you have {FormatVersion(update.Current)}).";
+                $"Update available: {AppVersion.Format(update.Latest)} (tag {update.TagName}); you have {AppVersion.Format(update.Current)}.";
             DownloadUpdateButton.Visibility = string.IsNullOrWhiteSpace(update.SetupDownloadUrl)
                 ? Visibility.Collapsed
                 : Visibility.Visible;
@@ -441,8 +441,6 @@ public sealed partial class SettingsPage : Page
             DownloadUpdateButton.IsEnabled = true;
         }
     }
-
-    private static string FormatVersion(Version v) => $"v{v.Major}.{v.Minor}.{Math.Max(v.Build, 0)}";
 
     private void SyncWindowPlacementCombo()
     {

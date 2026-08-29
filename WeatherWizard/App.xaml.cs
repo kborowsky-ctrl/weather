@@ -71,6 +71,8 @@ public partial class App : Application
 
     public NwsRadarStationsClient NwsRadarStations { get; }
 
+    public CpcSeasonalOutlookClient CpcSeasonal { get; }
+
     public SpeechService Speech { get; }
 
     public AlertSpeechCoordinator AlertSpeech { get; }
@@ -93,6 +95,7 @@ public partial class App : Application
         NwsPoints = new NwsPointsClient(Http);
         NwsGridForecast = new NwsGridForecastClient(Http);
         NwsRadarStations = new NwsRadarStationsClient(Http);
+        CpcSeasonal = new CpcSeasonalOutlookClient(Http);
         Speech = new SpeechService();
         AlertSpeech = new AlertSpeechCoordinator(Speech);
         Updates = new GitHubUpdateChecker(Http);

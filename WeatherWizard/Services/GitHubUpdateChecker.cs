@@ -12,7 +12,7 @@ public sealed record AppUpdateInfo(
     string? SetupDownloadUrl,
     string? SetupFileName)
 {
-    public bool IsNewer => Latest > Current;
+    public bool IsNewer => AppVersion.Compare(Latest, Current) > 0;
 }
 
 /// <summary>Checks GitHub Releases for a newer WeatherWizard Setup EXE.</summary>
@@ -62,7 +62,7 @@ public sealed class GitHubUpdateChecker(HttpClientFactory http)
 
         return new AppUpdateInfo(
             Current: AppVersion.Semantic,
-            Latest: latest,
+            Latest: AppVersion.Normalize(latest),
             TagName: tag,
             ReleasePageUrl: htmlUrl,
             SetupDownloadUrl: setupUrl,

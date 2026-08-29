@@ -18,5 +18,14 @@ public sealed class WeatherAlertItem
     /// <summary>NWS <c>ends</c> instant when present.</summary>
     public DateTimeOffset? Ends { get; init; }
 
+    /// <summary>NWS <c>description</c> — main alert body (same as public "text data").</summary>
+    public string Description { get; init; } = "";
+
+    /// <summary>NWS <c>instruction</c> — recommended actions when present.</summary>
+    public string Instruction { get; init; } = "";
+
     public Uri? Link { get; init; }
+
+    public bool HasDetailText =>
+        !string.IsNullOrWhiteSpace(Description) || !string.IsNullOrWhiteSpace(Instruction);
 }

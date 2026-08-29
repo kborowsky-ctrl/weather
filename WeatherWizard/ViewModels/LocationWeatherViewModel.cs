@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WeatherWizard.Models;
+using WeatherWizard.Services;
 using WeatherWizard;
 
 namespace WeatherWizard.ViewModels;
@@ -19,10 +20,23 @@ public partial class LocationWeatherViewModel : ObservableObject
     [ObservableProperty] private string _alertSummary = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasAlertLink))]
-    private Uri? _alertLink;
+    [NotifyPropertyChangedFor(nameof(HasAlertDetails))]
+    private IReadOnlyList<WeatherAlertItem> _activeAlerts = Array.Empty<WeatherAlertItem>();
 
-    public bool HasAlertLink => AlertLink is not null;
+    public bool HasAlertDetails => ActiveAlerts.Any(a => a.HasDetailText);
+
+    /// <summary>Optional public web link (kept for reference; Details opens in-app text).</summary>
+    [ObservableProperty] private Uri? _alertLink;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSeasonalOutlook))]
+    [NotifyPropertyChangedFor(nameof(SeasonalOutlookLinkText))]
+    private SeasonalOutlookSnapshot? _seasonalOutlook;
+
+    public bool HasSeasonalOutlook => SeasonalOutlook is not null;
+
+    public string SeasonalOutlookLinkText =>
+        SeasonalOutlook is { } s ? $"{s.Target.DisplayName} outlook" : "Seasonal outlook";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasError))]

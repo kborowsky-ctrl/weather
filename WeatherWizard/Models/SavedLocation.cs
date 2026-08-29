@@ -24,6 +24,11 @@ public sealed class SavedLocation
     /// <summary>4-letter WSR-88D site id from NWS points (e.g. KOKX); used for official RIDGE GIF.</summary>
     public string? NwsRadarStation { get; set; }
 
+    /// <summary>Radar site coordinates (for local zoom centering on the saved location).</summary>
+    public double? NwsRadarStationLat { get; set; }
+
+    public double? NwsRadarStationLon { get; set; }
+
     /// <summary>Up to 5 direct image URLs (GIF/PNG/JPG) for this location's radar carousel.</summary>
     public List<string> CustomRadarImageUrls { get; set; } = [];
 

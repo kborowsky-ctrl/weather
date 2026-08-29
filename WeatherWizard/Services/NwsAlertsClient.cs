@@ -86,6 +86,13 @@ public sealed class NwsAlertsClient(HttpClientFactory http)
                 && DateTimeOffset.TryParse(endsEl.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var endsDto))
                 ends = endsDto;
 
+            var description = props.TryGetProperty("description", out var descEl) && descEl.ValueKind == JsonValueKind.String
+                ? descEl.GetString() ?? ""
+                : "";
+            var instruction = props.TryGetProperty("instruction", out var instEl) && instEl.ValueKind == JsonValueKind.String
+                ? instEl.GetString() ?? ""
+                : "";
+
             list.Add(new WeatherAlertItem
             {
                 Id = id,
@@ -94,6 +101,8 @@ public sealed class NwsAlertsClient(HttpClientFactory http)
                 Event = rawEvent.Trim(),
                 AreaDesc = areaDesc,
                 Ends = ends,
+                Description = description.Trim(),
+                Instruction = instruction.Trim(),
                 Link = link,
             });
         }

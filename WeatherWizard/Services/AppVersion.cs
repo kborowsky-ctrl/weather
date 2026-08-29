@@ -5,14 +5,7 @@ namespace WeatherWizard.Services;
 
 public static partial class AppVersion
 {
-    public static string Display
-    {
-        get
-        {
-            var v = Semantic;
-            return $"v{v.Major}.{v.Minor}.{v.Build}";
-        }
-    }
+    public static string Display => Format(Semantic);
 
     public static Version Semantic
     {
@@ -45,8 +38,17 @@ public static partial class AppVersion
         return Version.TryParse(s, out version!);
     }
 
-    private static Version Normalize(Version v) =>
+    public static Version Normalize(Version v) =>
         new(v.Major, v.Minor, Math.Max(v.Build, 0));
+
+    public static string Format(Version v)
+    {
+        var n = Normalize(v);
+        return $"v{n.Major}.{n.Minor}.{n.Build}";
+    }
+
+    public static int Compare(Version a, Version b) =>
+        Normalize(a).CompareTo(Normalize(b));
 
     [GeneratedRegex(@"^(\d+(?:\.\d+){1,3})", RegexOptions.CultureInvariant)]
     private static partial Regex VersionCutRegex();

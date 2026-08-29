@@ -185,16 +185,19 @@ public sealed partial class MainPage : Page
                 if (!loc.IsUnitedStates)
                 {
                     vm.AlertSummary = "NWS alerts apply to U.S. locations only.";
+                    vm.ActiveAlerts = [];
                     vm.AlertLink = null;
                 }
                 else if (alerts.Count == 0)
                 {
                     vm.AlertSummary = "No active weather alerts.";
+                    vm.ActiveAlerts = [];
                     vm.AlertLink = null;
                 }
                 else
                 {
                     vm.AlertSummary = NwsAlertDisplayFormatter.FormatActiveAlerts(alerts);
+                    vm.ActiveAlerts = alerts;
                     vm.AlertLink = alerts[0].Link;
                 }
 
@@ -210,6 +213,8 @@ public sealed partial class MainPage : Page
                             if (!string.Equals(loc.NwsRadarStation, rid, StringComparison.Ordinal))
                             {
                                 loc.NwsRadarStation = rid;
+                                loc.NwsRadarStationLat = null;
+                                loc.NwsRadarStationLon = null;
                                 await app.Locations.SaveAsync(raiseChanged: false).ConfigureAwait(true);
                             }
 
@@ -220,6 +225,12 @@ public sealed partial class MainPage : Page
                     {
                         // Keep existing radar station id if the points lookup fails.
                     }
+
+                    await LoadSeasonalOutlookAsync(app, vm, loc).ConfigureAwait(true);
+                }
+                else
+                {
+                    vm.SeasonalOutlook = null;
                 }
 
                 vm.LastUpdatedText = $"Updated {DateTime.Now:t}";
@@ -242,6 +253,41 @@ public sealed partial class MainPage : Page
 
     /// <summary>Triggers a full refresh (same as the toolbar refresh control).</summary>
     public void RequestRefresh() => _ = RefreshAllAsync();
+
+    private static async Task LoadSeasonalOutlookAsync(App app, LocationWeatherViewModel vm, SavedLocation loc)
+    {
+        try
+        {
+            var today = DateOnly.FromDateTime(DateTime.Now);
+            var target = SeasonalOutlookWindow.TryGetActiveTarget(today);
+            if (target is null)
+            {
+                vm.SeasonalOutlook = null;
+                return;
+            }
+
+            // Honor 2 weeks after the actual CPC issuance date when available.
+            var snap = await app.CpcSeasonal.TryGetAsync(loc.Latitude, loc.Longitude, target).ConfigureAwait(true);
+            if (snap is null)
+            {
+                vm.SeasonalOutlook = null;
+                return;
+            }
+
+            var end = snap.IssuedOn.AddDays(14);
+            if (today > end || today < target.WindowStart)
+            {
+                vm.SeasonalOutlook = null;
+                return;
+            }
+
+            vm.SeasonalOutlook = snap;
+        }
+        catch
+        {
+            vm.SeasonalOutlook = null;
+        }
+    }
 
     private async void OnLocationTabCloseRequested(TabView sender, TabViewTabCloseRequestedEventArgs args)
     {

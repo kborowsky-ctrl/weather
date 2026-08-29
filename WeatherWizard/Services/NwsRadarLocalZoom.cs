@@ -1,3 +1,4 @@
+using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
 
 namespace WeatherWizard.Services;
@@ -64,8 +65,9 @@ public static class NwsRadarLocalZoom
         var dx = eastKm / RangeKm * radiusPx;
         var dy = -northKm / RangeKm * radiusPx; // north is up in the image
 
-        // Keep focus inside the map disk so extreme offsets don't leave the frame.
-        var max = radiusPx * 0.92;
+        // Keep focus inside the map disk so extreme offsets don't leave the frame empty,
+        // but allow the zip/location to sit away from the radar site.
+        var max = radiusPx * 0.95;
         var dist = Math.Sqrt(dx * dx + dy * dy);
         if (dist > max && dist > 0)
         {
@@ -75,6 +77,21 @@ public static class NwsRadarLocalZoom
         }
 
         return (cx + dx, cy + dy);
+    }
+
+    /// <summary>
+    /// Matrix that places <paramref name="focus"/> at the viewport center after uniform scale.
+    /// </summary>
+    public static Matrix ZoomMatrix(Point focus, double viewCenterX, double viewCenterY, double scale)
+    {
+        // p' = scale * p + (center - focus * scale)
+        return new Matrix(
+            scale,
+            0,
+            0,
+            scale,
+            viewCenterX - focus.X * scale,
+            viewCenterY - focus.Y * scale);
     }
 
     public static Point MapSourcePixelToControl(
