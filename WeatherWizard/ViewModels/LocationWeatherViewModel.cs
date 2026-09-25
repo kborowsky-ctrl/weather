@@ -39,6 +39,15 @@ public partial class LocationWeatherViewModel : ObservableObject
         SeasonalOutlook is { } s ? $"{s.Target.DisplayName} outlook" : "Seasonal outlook";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasWeekAheadThreat))]
+    [NotifyPropertyChangedFor(nameof(WeekAheadThreatBadgeText))]
+    private WeekAheadThreatSnapshot? _weekAheadThreats;
+
+    public bool HasWeekAheadThreat => WeekAheadThreats?.Top is not null;
+
+    public string WeekAheadThreatBadgeText => WeekAheadThreats?.BadgeText ?? "";
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasError))]
     private string _errorBanner = "";
 

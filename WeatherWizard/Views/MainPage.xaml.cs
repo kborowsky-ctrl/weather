@@ -238,10 +238,12 @@ public sealed partial class MainPage : Page
                     }
 
                     await LoadSeasonalOutlookAsync(app, vm, loc).ConfigureAwait(true);
+                    await LoadWeekAheadThreatsAsync(app, vm, loc, pointMeta, alerts).ConfigureAwait(true);
                 }
                 else
                 {
                     vm.SeasonalOutlook = null;
+                    vm.WeekAheadThreats = null;
                 }
 
                 vm.LastUpdatedText = $"Updated {DateTime.Now:t}";
@@ -297,6 +299,29 @@ public sealed partial class MainPage : Page
         catch
         {
             vm.SeasonalOutlook = null;
+        }
+    }
+
+    private static async Task LoadWeekAheadThreatsAsync(
+        App app,
+        LocationWeatherViewModel vm,
+        SavedLocation loc,
+        NwsPointMetadata? pointMeta,
+        IReadOnlyList<WeatherAlertItem> alerts)
+    {
+        try
+        {
+            vm.WeekAheadThreats = await app.WeekAheadThreats.TryGetAsync(
+                loc.Latitude,
+                loc.Longitude,
+                pointMeta?.Office,
+                pointMeta?.ForecastZone,
+                pointMeta?.CountyZone,
+                alerts).ConfigureAwait(true);
+        }
+        catch
+        {
+            vm.WeekAheadThreats = null;
         }
     }
 

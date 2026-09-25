@@ -119,6 +119,27 @@
                                 Text="{Binding CurrentConditions.Row3Right}"
                                 TextWrapping="WrapWholeWords" />
                             <Border
+                                x:Name="WeekAheadThreatBadge"
+                                Padding="4,2"
+                                HorizontalAlignment="Left"
+                                CornerRadius="3"
+                                Visibility="Collapsed">
+                                <HyperlinkButton
+                                    x:Name="WeekAheadThreatLink"
+                                    MinHeight="0"
+                                    Padding="0"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Click="WeekAheadThreatLink_Click">
+                                    <TextBlock
+                                        x:Name="WeekAheadThreatText"
+                                        FontSize="11"
+                                        TextWrapping="WrapWholeWords" />
+                                </HyperlinkButton>
+                            </Border>
+                            <Border
                                 x:Name="SeasonalOutlookBadge"
                                 Padding="4,2"
                                 HorizontalAlignment="Left"

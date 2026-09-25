@@ -52,6 +52,29 @@ public sealed class NwsPointsClient(HttpClientFactory http)
                 forecastUri = u;
         }
 
-        return new NwsPointMetadata(radar, forecastUri);
+        var office = props.TryGetProperty("cwa", out var cwa) && cwa.ValueKind == JsonValueKind.String
+            ? cwa.GetString()?.Trim().ToUpperInvariant()
+            : null;
+
+        return new NwsPointMetadata(
+            radar,
+            forecastUri,
+            string.IsNullOrWhiteSpace(office) ? null : office,
+            ZoneIdFromUrl(props, "forecastZone"),
+            ZoneIdFromUrl(props, "county"));
+    }
+
+    /// <summary>Last path segment of a zone URL, e.g. ".../zones/forecast/NYZ072" to NYZ072.</summary>
+    private static string? ZoneIdFromUrl(JsonElement props, string name)
+    {
+        if (!props.TryGetProperty(name, out var el) || el.ValueKind != JsonValueKind.String)
+            return null;
+
+        var url = el.GetString();
+        if (string.IsNullOrWhiteSpace(url))
+            return null;
+
+        var id = url.TrimEnd('/').Split('/')[^1].Trim().ToUpperInvariant();
+        return id.Length == 0 ? null : id;
     }
 }

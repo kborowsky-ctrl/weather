@@ -89,7 +89,7 @@ public sealed partial class LocationWeatherView : UserControl
         }
 
         SyncAlertLinkVisibility();
-        SyncSeasonalOutlookVisibility();
+        SyncOutlookBadges();
         SyncErrorInfo();
         SyncPressureArrow();
         _ = NavigateMapAsync();
@@ -105,8 +105,11 @@ public sealed partial class LocationWeatherView : UserControl
 
         if (e.PropertyName is nameof(LocationWeatherViewModel.SeasonalOutlook)
             or nameof(LocationWeatherViewModel.HasSeasonalOutlook)
-            or nameof(LocationWeatherViewModel.SeasonalOutlookLinkText))
-            SyncSeasonalOutlookVisibility();
+            or nameof(LocationWeatherViewModel.SeasonalOutlookLinkText)
+            or nameof(LocationWeatherViewModel.WeekAheadThreats)
+            or nameof(LocationWeatherViewModel.HasWeekAheadThreat)
+            or nameof(LocationWeatherViewModel.WeekAheadThreatBadgeText))
+            SyncOutlookBadges();
 
         if (e.PropertyName is nameof(LocationWeatherViewModel.ErrorBanner) or nameof(LocationWeatherViewModel.HasError))
             SyncErrorInfo();
@@ -139,12 +142,27 @@ public sealed partial class LocationWeatherView : UserControl
         win.Activate();
     }
 
-    private void SyncSeasonalOutlookVisibility()
+    /// <summary>One badge at a time: a week-ahead threat takes the seasonal outlook's spot while active.</summary>
+    private void SyncOutlookBadges()
     {
         if (_vm is null)
             return;
 
         SeasonalOutlookLink.Content = _vm.SeasonalOutlookLinkText;
+
+        if (_vm.WeekAheadThreats?.Top is { } threat)
+        {
+            WeekAheadThreatText.Text = _vm.WeekAheadThreatBadgeText;
+            WeekAheadThreatBadge.Background = new SolidColorBrush(WeekAheadThreatColors.BackgroundFor(threat.Kind));
+            var fg = new SolidColorBrush(WeekAheadThreatColors.ForegroundFor(threat.Kind));
+            WeekAheadThreatLink.Foreground = fg;
+            WeekAheadThreatText.Foreground = fg;
+            WeekAheadThreatBadge.Visibility = Visibility.Visible;
+            SeasonalOutlookBadge.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        WeekAheadThreatBadge.Visibility = Visibility.Collapsed;
 
         if (_vm.HasSeasonalOutlook && _vm.SeasonalOutlook is { } snap)
         {
@@ -171,6 +189,15 @@ public sealed partial class LocationWeatherView : UserControl
             return;
 
         var win = new SeasonalOutlookDetailsWindow(_vm.SeasonalOutlook, _vm.Location.TabLabel);
+        win.Activate();
+    }
+
+    private void WeekAheadThreatLink_Click(object sender, RoutedEventArgs e)
+    {
+        if (_vm?.WeekAheadThreats is not { Top: not null } snapshot)
+            return;
+
+        var win = new WeekAheadThreatWindow(snapshot, _vm.Location.TabLabel);
         win.Activate();
     }
 

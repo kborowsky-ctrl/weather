@@ -73,6 +73,8 @@ public partial class App : Application
 
     public CpcSeasonalOutlookClient CpcSeasonal { get; }
 
+    public WeekAheadThreatClient WeekAheadThreats { get; }
+
     public SpeechService Speech { get; }
 
     public AlertSpeechCoordinator AlertSpeech { get; }
@@ -96,6 +98,7 @@ public partial class App : Application
         NwsGridForecast = new NwsGridForecastClient(Http);
         NwsRadarStations = new NwsRadarStationsClient(Http);
         CpcSeasonal = new CpcSeasonalOutlookClient(Http);
+        WeekAheadThreats = new WeekAheadThreatClient(Http);
         Speech = new SpeechService();
         AlertSpeech = new AlertSpeechCoordinator(Speech);
         Updates = new GitHubUpdateChecker(Http);
