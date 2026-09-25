@@ -1,39 +1,24 @@
-using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
 
 namespace WeatherWizard.Services;
 
 /// <summary>
-/// Computes zoom focus for NWS RIDGE standard GIFs so local zoom centers on the saved
-/// location rather than the radar site / image midpoint (legend pushes the disk left).
+/// Maps a saved lat/lon onto NWS RIDGE standard GIFs and sizes/positions the image
+/// so local zoom is centered on that point (not the radar site).
 /// </summary>
 public static class NwsRadarLocalZoom
 {
     /// <summary>Typical short-range RIDGE standard display radius (~124 nmi).</summary>
     private const double RangeKm = 230.0;
 
-    // RIDGE II standard stills are usually 600×550 with title/legend chrome.
-    private const double MapLeftFrac = 0.01;
-    private const double MapRightFrac = 0.84;
-    private const double MapTopFrac = 0.07;
-    private const double MapBottomFrac = 0.96;
+    // RIDGE II standard stills are usually 600×550: title strip, map, bottom color bar,
+    // and a right-side product legend.
+    private const double MapLeftFrac = 0.02;
+    private const double MapRightFrac = 0.90;
+    private const double MapTopFrac = 0.08;
+    private const double MapBottomFrac = 0.94;
 
-    public static Point FocusInControlCoordinates(
-        double controlWidth,
-        double controlHeight,
-        int pixelWidth,
-        int pixelHeight,
-        double locationLat,
-        double locationLon,
-        double radarLat,
-        double radarLon)
-    {
-        var (srcX, srcY) = FocusInSourcePixels(
-            pixelWidth, pixelHeight, locationLat, locationLon, radarLat, radarLon);
-        return MapSourcePixelToControl(controlWidth, controlHeight, pixelWidth, pixelHeight, srcX, srcY);
-    }
-
-    /// <summary>Radar-disk center in source pixels (accounts for right-side legend).</summary>
+    /// <summary>Radar-disk center in source pixels (accounts for chrome / legend).</summary>
     public static (double X, double Y) RadarDiskCenterPixels(int pixelWidth, int pixelHeight)
     {
         var left = pixelWidth * MapLeftFrac;
@@ -65,8 +50,7 @@ public static class NwsRadarLocalZoom
         var dx = eastKm / RangeKm * radiusPx;
         var dy = -northKm / RangeKm * radiusPx; // north is up in the image
 
-        // Keep focus inside the map disk so extreme offsets don't leave the frame empty,
-        // but allow the zip/location to sit away from the radar site.
+        // Keep focus inside the map disk so extreme offsets don't leave an empty frame.
         var max = radiusPx * 0.95;
         var dist = Math.Sqrt(dx * dx + dy * dy);
         if (dist > max && dist > 0)
@@ -80,18 +64,29 @@ public static class NwsRadarLocalZoom
     }
 
     /// <summary>
-    /// Matrix that places <paramref name="focus"/> at the viewport center after uniform scale.
+    /// Layout for local zoom: scale the GIF so <paramref name="srcFocusX"/>/<paramref name="srcFocusY"/>
+    /// land at the host center. Returns image width/height and top-left margin.
     /// </summary>
-    public static Matrix ZoomMatrix(Point focus, double viewCenterX, double viewCenterY, double scale)
+    public static (double Width, double Height, double MarginLeft, double MarginTop) LayoutZoomedImage(
+        double hostWidth,
+        double hostHeight,
+        int pixelWidth,
+        int pixelHeight,
+        double srcFocusX,
+        double srcFocusY,
+        double zoomScale)
     {
-        // p' = scale * p + (center - focus * scale)
-        return new Matrix(
-            scale,
-            0,
-            0,
-            scale,
-            viewCenterX - focus.X * scale,
-            viewCenterY - focus.Y * scale);
+        if (hostWidth <= 0 || hostHeight <= 0 || pixelWidth <= 0 || pixelHeight <= 0 || zoomScale <= 0)
+            return (hostWidth, hostHeight, 0, 0);
+
+        // Fit the full GIF in the host, then magnify.
+        var fit = Math.Min(hostWidth / pixelWidth, hostHeight / pixelHeight);
+        var displayScale = fit * zoomScale;
+        var width = pixelWidth * displayScale;
+        var height = pixelHeight * displayScale;
+        var left = hostWidth * 0.5 - srcFocusX * displayScale;
+        var top = hostHeight * 0.5 - srcFocusY * displayScale;
+        return (width, height, left, top);
     }
 
     public static Point MapSourcePixelToControl(

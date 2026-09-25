@@ -215,9 +215,20 @@ public sealed partial class MainPage : Page
                                 loc.NwsRadarStation = rid;
                                 loc.NwsRadarStationLat = null;
                                 loc.NwsRadarStationLon = null;
-                                await app.Locations.SaveAsync(raiseChanged: false).ConfigureAwait(true);
                             }
 
+                            if (loc.NwsRadarStationLat is null || loc.NwsRadarStationLon is null)
+                            {
+                                var coords = await app.NwsRadarStations.TryGetCoordinatesAsync(rid)
+                                    .ConfigureAwait(true);
+                                if (coords is { } c)
+                                {
+                                    loc.NwsRadarStationLat = c.Lat;
+                                    loc.NwsRadarStationLon = c.Lon;
+                                }
+                            }
+
+                            await app.Locations.SaveAsync(raiseChanged: false).ConfigureAwait(true);
                             vm.RadarStamp++;
                         }
                     }

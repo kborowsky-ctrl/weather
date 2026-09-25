@@ -365,29 +365,6 @@ public sealed partial class LocationWeatherView : UserControl
         _radarFlipTimer = null;
     }
 
-    private async Task ShowRadarFrameAsync(RadarFrame frame)
-    {
-        if (!_radarAvailable)
-            return;
-
-        try
-        {
-            if (!string.Equals(_loadedRadarUrl, frame.ImageUrl, StringComparison.OrdinalIgnoreCase))
-            {
-                var url = AppendCacheBuster(new Uri(frame.ImageUrl));
-                await LoadRadarImageAsync(url).ConfigureAwait(true);
-                _loadedRadarUrl = frame.ImageUrl;
-            }
-
-            ApplyRadarFramePresentation(frame);
-        }
-        catch
-        {
-            MapRasterImage.Visibility = Visibility.Collapsed;
-            RadarPlaceholder.Visibility = Visibility.Visible;
-        }
-    }
-
     private void ApplyCurrentRadarFramePresentation()
     {
         if (_radarFrameIndex < 0 || _radarFrameIndex >= _radarFrames.Count)
@@ -405,26 +382,30 @@ public sealed partial class LocationWeatherView : UserControl
         if (string.IsNullOrWhiteSpace(id))
             return;
 
-        // Prefer persisted site coords so local zoom can center on the zip/location immediately.
+        var normalized = id.Trim().ToUpperInvariant();
+
+        // Prefer persisted site coords so local zoom can pan to the zip/location immediately.
         if (_vm.Location.NwsRadarStationLat is double savedLat
             && _vm.Location.NwsRadarStationLon is double savedLon
+            && IsPlausibleRadarCoordinate(savedLat, savedLon)
             && string.Equals(_vm.Location.NwsRadarStation, id, StringComparison.OrdinalIgnoreCase))
         {
-            _radarSiteIdLoaded = id.Trim().ToUpperInvariant();
+            _radarSiteIdLoaded = normalized;
             _radarSiteLat = savedLat;
             _radarSiteLon = savedLon;
             return;
         }
 
-        if (string.Equals(_radarSiteIdLoaded, id, StringComparison.OrdinalIgnoreCase)
-            && _radarSiteLat is not null
-            && _radarSiteLon is not null)
+        if (string.Equals(_radarSiteIdLoaded, normalized, StringComparison.OrdinalIgnoreCase)
+            && _radarSiteLat is double existingLat
+            && _radarSiteLon is double existingLon
+            && IsPlausibleRadarCoordinate(existingLat, existingLon))
             return;
 
-        _radarSiteIdLoaded = id.Trim().ToUpperInvariant();
-        var coords = await App.Current.NwsRadarStations.TryGetCoordinatesAsync(_radarSiteIdLoaded)
+        _radarSiteIdLoaded = normalized;
+        var coords = await App.Current.NwsRadarStations.TryGetCoordinatesAsync(normalized)
             .ConfigureAwait(true);
-        if (coords is { } c)
+        if (coords is { } c && IsPlausibleRadarCoordinate(c.Lat, c.Lon))
         {
             _radarSiteLat = c.Lat;
             _radarSiteLon = c.Lon;
@@ -446,6 +427,35 @@ public sealed partial class LocationWeatherView : UserControl
         }
     }
 
+    private static bool IsPlausibleRadarCoordinate(double lat, double lon) =>
+        lat is >= 15 and <= 72 && lon is >= -180 and <= -50;
+
+    private async Task ShowRadarFrameAsync(RadarFrame frame)
+    {
+        if (!_radarAvailable)
+            return;
+
+        try
+        {
+            if (frame.Kind == RadarFrameKind.NwsZoomed)
+                await EnsureRadarSiteCoordinatesAsync().ConfigureAwait(true);
+
+            if (!string.Equals(_loadedRadarUrl, frame.ImageUrl, StringComparison.OrdinalIgnoreCase))
+            {
+                var url = AppendCacheBuster(new Uri(frame.ImageUrl));
+                await LoadRadarImageAsync(url).ConfigureAwait(true);
+                _loadedRadarUrl = frame.ImageUrl;
+            }
+
+            ApplyRadarFramePresentation(frame);
+        }
+        catch
+        {
+            MapRasterImage.Visibility = Visibility.Collapsed;
+            RadarPlaceholder.Visibility = Visibility.Visible;
+        }
+    }
+
     private void ApplyRadarFramePresentation(RadarFrame frame)
     {
         if (!_radarAvailable || MapRasterImage.Source is null)
@@ -453,39 +463,45 @@ public sealed partial class LocationWeatherView : UserControl
 
         if (frame.Kind == RadarFrameKind.NwsZoomed)
         {
-            MapRasterImage.HorizontalAlignment = HorizontalAlignment.Stretch;
-            MapRasterImage.VerticalAlignment = VerticalAlignment.Stretch;
-            MapRasterImage.Stretch = Stretch.Uniform;
-
             var w = RadarImageHost.ActualWidth;
             var h = RadarImageHost.ActualHeight;
             if (w <= 0 || h <= 0)
+                return;
+
+            var pw = _radarPixelWidth;
+            var ph = _radarPixelHeight;
+            if (pw <= 0 || ph <= 0)
             {
-                w = MapRasterImage.ActualWidth;
-                h = MapRasterImage.ActualHeight;
+                if (MapRasterImage.Source is BitmapImage bmp && bmp.PixelWidth > 0 && bmp.PixelHeight > 0)
+                {
+                    pw = bmp.PixelWidth;
+                    ph = bmp.PixelHeight;
+                }
+                else
+                {
+                    return;
+                }
             }
 
-            // Match Image layout size to the host so focus math and RenderTransform share one space.
-            if (w > 0 && h > 0)
-            {
-                MapRasterImage.Width = w;
-                MapRasterImage.Height = h;
-            }
+            var (srcX, srcY) = ResolveZoomSourcePixels(pw, ph);
 
-            var viewCx = w > 0 ? w * 0.5 : 200;
-            var viewCy = h > 0 ? h * 0.5 : 200;
-            var focus = ResolveZoomFocusPoint(w, h, viewCx, viewCy);
+            // Size + margin placement (no RenderTransform): source focus lands on host center.
+            var layout = NwsRadarLocalZoom.LayoutZoomedImage(
+                w, h, pw, ph, srcX, srcY, RadarZoomScale);
 
-            MapRasterImage.RenderTransformOrigin = new Point(0, 0);
-            MapRasterImage.RenderTransform = new MatrixTransform
-            {
-                Matrix = NwsRadarLocalZoom.ZoomMatrix(focus, viewCx, viewCy, RadarZoomScale),
-            };
+            MapRasterImage.RenderTransform = null;
+            MapRasterImage.Stretch = Stretch.Fill;
+            MapRasterImage.HorizontalAlignment = HorizontalAlignment.Left;
+            MapRasterImage.VerticalAlignment = VerticalAlignment.Top;
+            MapRasterImage.Width = layout.Width;
+            MapRasterImage.Height = layout.Height;
+            MapRasterImage.Margin = new Thickness(layout.MarginLeft, layout.MarginTop, 0, 0);
         }
         else
         {
             MapRasterImage.Width = double.NaN;
             MapRasterImage.Height = double.NaN;
+            MapRasterImage.Margin = new Thickness(0);
             MapRasterImage.RenderTransform = null;
             MapRasterImage.HorizontalAlignment = HorizontalAlignment.Center;
             MapRasterImage.VerticalAlignment = VerticalAlignment.Center;
@@ -496,28 +512,14 @@ public sealed partial class LocationWeatherView : UserControl
         RadarViewHint.Text = frame.Hint;
     }
 
-    private Point ResolveZoomFocusPoint(double controlW, double controlH, double fallbackX, double fallbackY)
+    private (double X, double Y) ResolveZoomSourcePixels(int pw, int ph)
     {
-        var pw = _radarPixelWidth;
-        var ph = _radarPixelHeight;
-        if (pw <= 0 || ph <= 0)
+        if (_vm is not null
+            && _radarSiteLat is double rLat
+            && _radarSiteLon is double rLon
+            && IsPlausibleRadarCoordinate(rLat, rLon))
         {
-            if (MapRasterImage.Source is BitmapImage bmp && bmp.PixelWidth > 0 && bmp.PixelHeight > 0)
-            {
-                pw = bmp.PixelWidth;
-                ph = bmp.PixelHeight;
-            }
-            else
-            {
-                return new Point(fallbackX, fallbackY);
-            }
-        }
-
-        if (_vm is not null && _radarSiteLat is double rLat && _radarSiteLon is double rLon)
-        {
-            return NwsRadarLocalZoom.FocusInControlCoordinates(
-                controlW,
-                controlH,
+            return NwsRadarLocalZoom.FocusInSourcePixels(
                 pw,
                 ph,
                 _vm.Location.Latitude,
@@ -526,9 +528,8 @@ public sealed partial class LocationWeatherView : UserControl
                 rLon);
         }
 
-        // No station coords: still prefer radar-disk center over raw image midpoint (legend bias).
-        var (sx, sy) = NwsRadarLocalZoom.RadarDiskCenterPixels(pw, ph);
-        return NwsRadarLocalZoom.MapSourcePixelToControl(controlW, controlH, pw, ph, sx, sy);
+        // Without site coords we can only center the radar disk (not the zip).
+        return NwsRadarLocalZoom.RadarDiskCenterPixels(pw, ph);
     }
 
     private void UpdateRadarHostHeight()
