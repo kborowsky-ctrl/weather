@@ -3,15 +3,18 @@
   Publish the portable app, then compile an Inno Setup installer EXE.
 
 .DESCRIPTION
-  Requires Inno Setup 6 (ISCC.exe). Looks in common install paths, or set
+  Requires Inno Setup 6 or 7 (ISCC.exe). Looks in common install paths, or set
   env var INNO_SETUP_ISCC to the full path of ISCC.exe.
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File scripts\Build-InnoSetup.ps1
   powershell -ExecutionPolicy Bypass -File scripts\Build-InnoSetup.ps1 -SkipPublish
+  powershell -ExecutionPolicy Bypass -File scripts\Build-InnoSetup.ps1 -IfChanged
 #>
 param(
-    [switch] $SkipPublish
+    [switch] $SkipPublish,
+    # Skip everything when the portable exe and installer already match Version.props.
+    [switch] $IfChanged
 )
 
 $ErrorActionPreference = 'Stop'
@@ -35,6 +38,9 @@ function Find-ISCC {
         return $env:INNO_SETUP_ISCC
     }
     $candidates = @(
+        "$env:ProgramFiles\Inno Setup 7\ISCC.exe"
+        "${env:ProgramFiles(x86)}\Inno Setup 7\ISCC.exe"
+        "${env:LocalAppData}\Programs\Inno Setup 7\ISCC.exe"
         "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
         "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
         "${env:LocalAppData}\Programs\Inno Setup 6\ISCC.exe"
@@ -45,6 +51,35 @@ function Find-ISCC {
     $cmd = Get-Command ISCC.exe -ErrorAction SilentlyContinue
     if ($cmd) { return $cmd.Source }
     return $null
+}
+
+$setup = Join-Path $repoRoot 'dist\WeatherWizard-Setup-win-x64.exe'
+
+if ($IfChanged) {
+    $version = Get-AppVersion
+    $portableExe = Join-Path $portableDir 'WeatherWizard.exe'
+    if ((Test-Path $portableExe) -and (Test-Path $setup)) {
+        $exeVersion = (Get-Item $portableExe).VersionInfo.FileVersion
+        $setupIsNewer = (Get-Item $setup).LastWriteTime -ge (Get-Item $portableExe).LastWriteTime
+        if ($exeVersion -eq "$version.0" -and $setupIsNewer) {
+            Write-Host "Portable build and installer already at $version; skipping republish."
+            return
+        }
+    }
+    Write-Host "Republishing portable build and installer for $version..."
+}
+
+if (-not $SkipPublish) {
+    $running = Get-Process WeatherWizard -ErrorAction SilentlyContinue |
+        Where-Object { $_.Path -and $_.Path.StartsWith($portableDir, [StringComparison]::OrdinalIgnoreCase) }
+    if ($running) {
+        $msg = "WeatherWizard is running from $portableDir; close it and rebuild to republish."
+        if ($IfChanged) {
+            Write-Warning $msg
+            return
+        }
+        throw $msg
+    }
 }
 
 if (-not $SkipPublish) {
@@ -74,7 +109,6 @@ Write-Host "ISCC: $iscc"
 
 if ($LASTEXITCODE -ne 0) { throw "ISCC failed (exit $LASTEXITCODE)" }
 
-$setup = Join-Path $repoRoot 'dist\WeatherWizard-Setup-win-x64.exe'
 if (-not (Test-Path $setup)) { throw "Expected installer not found: $setup" }
 Write-Host "Created: $setup"
 Write-Host ""

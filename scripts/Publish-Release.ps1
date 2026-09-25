@@ -36,6 +36,7 @@ $common = @(
     '-p:Platform=x64'
     '-p:PublishTrimmed=false'
     '-p:PublishReadyToRun=true'
+    '-p:SkipAutoPublish=true'
 )
 
 function Add-PortableInstallerExtras([string] $targetDir) {

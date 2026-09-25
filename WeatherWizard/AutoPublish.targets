@@ -1,0 +1,13 @@
+<Project>
+  <!--
+    After a Release build, republish the portable folder and Inno installer when the
+    version changed. Publish-Release.ps1 passes SkipAutoPublish=true to its nested
+    dotnet publish so this does not recurse. Set SkipAutoPublish=true to opt out.
+  -->
+  <Target Name="AutoPublishPortableAndInstaller"
+          AfterTargets="Build"
+          Condition="'$(Configuration)' == 'Release' and '$(DesignTimeBuild)' != 'true' and '$(SkipAutoPublish)' != 'true' and '$(_IsPublishing)' != 'true'">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\scripts\Build-InnoSetup.ps1&quot; -IfChanged"
+          IgnoreExitCode="false" />
+  </Target>
+</Project>

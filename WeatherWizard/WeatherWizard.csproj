@@ -71,4 +71,5 @@
 
     <Import Project="Version.props" Condition="Exists('Version.props')" />
     <Import Project="Version.Increment.targets" />
+    <Import Project="AutoPublish.targets" />
 </Project>
