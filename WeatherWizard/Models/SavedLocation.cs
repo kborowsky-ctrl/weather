@@ -29,6 +29,9 @@ public sealed class SavedLocation
 
     public double? NwsRadarStationLon { get; set; }
 
+    /// <summary>U.S. ZIP for the saved coordinates (looked up once; used for pollen).</summary>
+    public string? PostalCode { get; set; }
+
     /// <summary>Up to 5 direct image URLs (GIF/PNG/JPG) for this location's radar carousel.</summary>
     public List<string> CustomRadarImageUrls { get; set; } = [];
 

@@ -119,43 +119,25 @@
                                 Text="{Binding CurrentConditions.Row3Right}"
                                 TextWrapping="WrapWholeWords" />
                             <Border
-                                x:Name="WeekAheadThreatBadge"
+                                x:Name="NoticeBadge"
                                 Padding="4,2"
                                 HorizontalAlignment="Left"
                                 CornerRadius="3"
                                 Visibility="Collapsed">
                                 <HyperlinkButton
-                                    x:Name="WeekAheadThreatLink"
+                                    x:Name="NoticeLink"
                                     MinHeight="0"
                                     Padding="0"
                                     HorizontalAlignment="Left"
                                     VerticalAlignment="Center"
                                     Background="Transparent"
                                     BorderThickness="0"
-                                    Click="WeekAheadThreatLink_Click">
+                                    Click="NoticeLink_Click">
                                     <TextBlock
-                                        x:Name="WeekAheadThreatText"
+                                        x:Name="NoticeText"
                                         FontSize="11"
                                         TextWrapping="WrapWholeWords" />
                                 </HyperlinkButton>
-                            </Border>
-                            <Border
-                                x:Name="SeasonalOutlookBadge"
-                                Padding="4,2"
-                                HorizontalAlignment="Left"
-                                CornerRadius="3"
-                                Visibility="Collapsed">
-                                <HyperlinkButton
-                                    x:Name="SeasonalOutlookLink"
-                                    MinHeight="0"
-                                    Padding="0"
-                                    HorizontalAlignment="Left"
-                                    VerticalAlignment="Center"
-                                    Background="Transparent"
-                                    BorderThickness="0"
-                                    Click="SeasonalOutlookLink_Click"
-                                    Content="{Binding SeasonalOutlookLinkText}"
-                                    FontSize="11" />
                             </Border>
                         </StackPanel>
 
@@ -386,10 +368,27 @@
                         SizeChanged="RadarImageHost_SizeChanged">
                         <Grid>
                             <Image
+                                x:Name="RadarBaseMapImage"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Stretch="UniformToFill"
+                                Visibility="Collapsed" />
+                            <Image
                                 x:Name="MapRasterImage"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
                                 Stretch="UniformToFill"
+                                Visibility="Collapsed" />
+                            <Ellipse
+                                x:Name="RadarLocationDot"
+                                Width="9"
+                                Height="9"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Fill="Black"
+                                IsHitTestVisible="False"
+                                Stroke="White"
+                                StrokeThickness="2"
                                 Visibility="Collapsed" />
                             <TextBlock
                                 x:Name="RadarPlaceholder"

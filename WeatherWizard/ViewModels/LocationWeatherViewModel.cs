@@ -47,6 +47,10 @@ public partial class LocationWeatherViewModel : ObservableObject
 
     public string WeekAheadThreatBadgeText => WeekAheadThreats?.BadgeText ?? "";
 
+    /// <summary>Set only when the pollen index is elevated (see <see cref="PollenReport.IsElevated"/>).</summary>
+    [ObservableProperty]
+    private PollenReport? _pollen;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasError))]
     private string _errorBanner = "";

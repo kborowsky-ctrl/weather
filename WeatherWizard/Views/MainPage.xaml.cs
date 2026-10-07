@@ -239,11 +239,13 @@ public sealed partial class MainPage : Page
 
                     await LoadSeasonalOutlookAsync(app, vm, loc).ConfigureAwait(true);
                     await LoadWeekAheadThreatsAsync(app, vm, loc, pointMeta, alerts).ConfigureAwait(true);
+                    await LoadPollenAsync(app, vm, loc).ConfigureAwait(true);
                 }
                 else
                 {
                     vm.SeasonalOutlook = null;
                     vm.WeekAheadThreats = null;
+                    vm.Pollen = null;
                 }
 
                 vm.LastUpdatedText = $"Updated {DateTime.Now:t}";
@@ -299,6 +301,32 @@ public sealed partial class MainPage : Page
         catch
         {
             vm.SeasonalOutlook = null;
+        }
+    }
+
+    private static async Task LoadPollenAsync(App app, LocationWeatherViewModel vm, SavedLocation loc)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(loc.PostalCode))
+            {
+                loc.PostalCode = await app.Pollen.TryResolveZipAsync(loc.Latitude, loc.Longitude)
+                    .ConfigureAwait(true);
+                if (loc.PostalCode is null)
+                {
+                    vm.Pollen = null;
+                    return;
+                }
+
+                await app.Locations.SaveAsync(raiseChanged: false).ConfigureAwait(true);
+            }
+
+            var report = await app.Pollen.TryGetAsync(loc.PostalCode).ConfigureAwait(true);
+            vm.Pollen = report is { IsElevated: true } ? report : null;
+        }
+        catch
+        {
+            vm.Pollen = null;
         }
     }
 

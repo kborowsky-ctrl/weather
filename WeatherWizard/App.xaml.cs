@@ -75,6 +75,8 @@ public partial class App : Application
 
     public WeekAheadThreatClient WeekAheadThreats { get; }
 
+    public PollenClient Pollen { get; }
+
     public SpeechService Speech { get; }
 
     public AlertSpeechCoordinator AlertSpeech { get; }
@@ -99,6 +101,7 @@ public partial class App : Application
         NwsRadarStations = new NwsRadarStationsClient(Http);
         CpcSeasonal = new CpcSeasonalOutlookClient(Http);
         WeekAheadThreats = new WeekAheadThreatClient(Http);
+        Pollen = new PollenClient(Http);
         Speech = new SpeechService();
         AlertSpeech = new AlertSpeechCoordinator(Speech);
         Updates = new GitHubUpdateChecker(Http);

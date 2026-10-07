@@ -32,7 +32,23 @@ public sealed partial class LocationWeatherView : UserControl
 
     private enum RadarFrameKind { NwsRegional, NwsZoomed, Custom }
 
-    private sealed record RadarFrame(RadarFrameKind Kind, string ImageUrl, string Hint);
+    private sealed record RadarFrame(RadarFrameKind Kind, string ImageUrl, string Hint, string? BaseMapUrl = null);
+
+    private string? _loadedBaseMapUrl;
+
+    private static readonly TimeSpan NoticeRotationInterval = TimeSpan.FromMinutes(1);
+
+    private sealed record Notice(
+        string Key,
+        string Text,
+        Windows.UI.Color Background,
+        Windows.UI.Color Foreground,
+        bool HasBorder,
+        Action Open);
+
+    private List<Notice> _notices = [];
+    private int _noticeIndex;
+    private DispatcherTimer? _noticeTimer;
 
     public string VersionDisplay => AppVersion.Display;
 
@@ -76,6 +92,9 @@ public sealed partial class LocationWeatherView : UserControl
             _vm.PropertyChanged -= OnVmPropertyChanged;
             StopPressureBlink();
             StopRadarFlipTimer();
+            StopNoticeRotation();
+            _notices = [];
+            _noticeIndex = 0;
         }
 
         _vm = vm;
@@ -108,7 +127,8 @@ public sealed partial class LocationWeatherView : UserControl
             or nameof(LocationWeatherViewModel.SeasonalOutlookLinkText)
             or nameof(LocationWeatherViewModel.WeekAheadThreats)
             or nameof(LocationWeatherViewModel.HasWeekAheadThreat)
-            or nameof(LocationWeatherViewModel.WeekAheadThreatBadgeText))
+            or nameof(LocationWeatherViewModel.WeekAheadThreatBadgeText)
+            or nameof(LocationWeatherViewModel.Pollen))
             SyncOutlookBadges();
 
         if (e.PropertyName is nameof(LocationWeatherViewModel.ErrorBanner) or nameof(LocationWeatherViewModel.HasError))
@@ -142,63 +162,121 @@ public sealed partial class LocationWeatherView : UserControl
         win.Activate();
     }
 
-    /// <summary>One badge at a time: a week-ahead threat takes the seasonal outlook's spot while active.</summary>
+    /// <summary>
+    /// Rebuilds the notices under AQI (week-ahead threats, pollen, seasonal outlook). One shows at a
+    /// time; when several are active they rotate every <see cref="NoticeRotationInterval"/>.
+    /// </summary>
     private void SyncOutlookBadges()
     {
         if (_vm is null)
             return;
 
-        SeasonalOutlookLink.Content = _vm.SeasonalOutlookLinkText;
+        var notices = new List<Notice>();
+        var label = _vm.Location.TabLabel;
 
-        if (_vm.WeekAheadThreats?.Top is { } threat)
+        if (_vm.WeekAheadThreats is { Threats.Count: > 0 } threats)
         {
-            WeekAheadThreatText.Text = _vm.WeekAheadThreatBadgeText;
-            WeekAheadThreatBadge.Background = new SolidColorBrush(WeekAheadThreatColors.BackgroundFor(threat.Kind));
-            var fg = new SolidColorBrush(WeekAheadThreatColors.ForegroundFor(threat.Kind));
-            WeekAheadThreatLink.Foreground = fg;
-            WeekAheadThreatText.Foreground = fg;
-            WeekAheadThreatBadge.Visibility = Visibility.Visible;
-            SeasonalOutlookBadge.Visibility = Visibility.Collapsed;
-            return;
+            foreach (var t in threats.Threats)
+            {
+                notices.Add(new Notice(
+                    $"threat:{t.Kind}",
+                    $"{t.Title} ({t.ShortDays})",
+                    WeekAheadThreatColors.BackgroundFor(t.Kind),
+                    WeekAheadThreatColors.ForegroundFor(t.Kind),
+                    HasBorder: false,
+                    () => new WeekAheadThreatWindow(threats, label).Activate()));
+            }
         }
 
-        WeekAheadThreatBadge.Visibility = Visibility.Collapsed;
-
-        if (_vm.HasSeasonalOutlook && _vm.SeasonalOutlook is { } snap)
+        if (_vm.Pollen is { IsElevated: true } pollen)
         {
-            var code = snap.Target.Code;
-            SeasonalOutlookBadge.Background = new SolidColorBrush(SeasonalOutlookColors.BackgroundFor(code));
-            SeasonalOutlookLink.Foreground = new SolidColorBrush(SeasonalOutlookColors.ForegroundFor(code));
-            SeasonalOutlookBadge.BorderBrush = string.Equals(code, "DJF", StringComparison.OrdinalIgnoreCase)
-                ? Application.Current.Resources["AppSectionBorderBrush"] as Brush
-                : null;
-            SeasonalOutlookBadge.BorderThickness = string.Equals(code, "DJF", StringComparison.OrdinalIgnoreCase)
-                ? new Thickness(1)
-                : new Thickness(0);
-            SeasonalOutlookBadge.Visibility = Visibility.Visible;
+            notices.Add(new Notice(
+                "pollen",
+                pollen.BadgeText,
+                PollenColors.BackgroundFor(pollen),
+                PollenColors.ForegroundFor(pollen),
+                HasBorder: false,
+                () => new PollenDetailsWindow(pollen, label).Activate()));
         }
+
+        if (_vm.HasSeasonalOutlook && _vm.SeasonalOutlook is { } seasonal)
+        {
+            var code = seasonal.Target.Code;
+            notices.Add(new Notice(
+                "seasonal",
+                _vm.SeasonalOutlookLinkText,
+                SeasonalOutlookColors.BackgroundFor(code),
+                SeasonalOutlookColors.ForegroundFor(code),
+                HasBorder: string.Equals(code, "DJF", StringComparison.OrdinalIgnoreCase),
+                () => new SeasonalOutlookDetailsWindow(seasonal, label).Activate()));
+        }
+
+        // Keep showing the same notice across refreshes when it is still active.
+        var currentKey = _noticeIndex < _notices.Count ? _notices[_noticeIndex].Key : null;
+        _notices = notices;
+        var keep = notices.FindIndex(n => n.Key == currentKey);
+        _noticeIndex = keep >= 0 ? keep : 0;
+
+        if (notices.Count > 1)
+            StartNoticeRotation();
         else
+            StopNoticeRotation();
+
+        ShowCurrentNotice();
+    }
+
+    private void ShowCurrentNotice()
+    {
+        if (_noticeIndex >= _notices.Count)
         {
-            SeasonalOutlookBadge.Visibility = Visibility.Collapsed;
+            NoticeBadge.Visibility = Visibility.Collapsed;
+            return;
         }
+
+        var n = _notices[_noticeIndex];
+        NoticeText.Text = n.Text;
+        NoticeBadge.Background = new SolidColorBrush(n.Background);
+        var fg = new SolidColorBrush(n.Foreground);
+        NoticeLink.Foreground = fg;
+        NoticeText.Foreground = fg;
+        NoticeBadge.BorderBrush = n.HasBorder ? Application.Current.Resources["AppSectionBorderBrush"] as Brush : null;
+        NoticeBadge.BorderThickness = n.HasBorder ? new Thickness(1) : new Thickness(0);
+        NoticeBadge.Visibility = Visibility.Visible;
     }
 
-    private void SeasonalOutlookLink_Click(object sender, RoutedEventArgs e)
+    private void StartNoticeRotation()
     {
-        if (_vm?.SeasonalOutlook is null)
+        if (_noticeTimer is not null)
             return;
 
-        var win = new SeasonalOutlookDetailsWindow(_vm.SeasonalOutlook, _vm.Location.TabLabel);
-        win.Activate();
+        _noticeTimer = new DispatcherTimer { Interval = NoticeRotationInterval };
+        _noticeTimer.Tick += OnNoticeTick;
+        _noticeTimer.Start();
     }
 
-    private void WeekAheadThreatLink_Click(object sender, RoutedEventArgs e)
+    private void StopNoticeRotation()
     {
-        if (_vm?.WeekAheadThreats is not { Top: not null } snapshot)
+        if (_noticeTimer is null)
             return;
 
-        var win = new WeekAheadThreatWindow(snapshot, _vm.Location.TabLabel);
-        win.Activate();
+        _noticeTimer.Tick -= OnNoticeTick;
+        _noticeTimer.Stop();
+        _noticeTimer = null;
+    }
+
+    private void OnNoticeTick(object? sender, object e)
+    {
+        if (_notices.Count <= 1)
+            return;
+
+        _noticeIndex = (_noticeIndex + 1) % _notices.Count;
+        ShowCurrentNotice();
+    }
+
+    private void NoticeLink_Click(object sender, RoutedEventArgs e)
+    {
+        if (_noticeIndex < _notices.Count)
+            _notices[_noticeIndex].Open();
     }
 
     private void SyncErrorInfo()
@@ -302,6 +380,10 @@ public sealed partial class LocationWeatherView : UserControl
         _heldRadarStream = null;
         MapRasterImage.Source = null;
         _loadedRadarUrl = null;
+        RadarBaseMapImage.Source = null;
+        RadarBaseMapImage.Visibility = Visibility.Collapsed;
+        RadarLocationDot.Visibility = Visibility.Collapsed;
+        _loadedBaseMapUrl = null;
         _radarPixelWidth = 0;
         _radarPixelHeight = 0;
         _radarSiteLat = null;
@@ -340,13 +422,18 @@ public sealed partial class LocationWeatherView : UserControl
         if (_vm is null)
             return frames;
 
+        if (MapUrlBuilder.TryBuildRegionalRadarUris(_vm.Location) is { } regional)
+        {
+            frames.Add(new RadarFrame(
+                RadarFrameKind.NwsRegional,
+                regional.Radar.AbsoluteUri,
+                "Regional view",
+                regional.BaseMap.AbsoluteUri));
+        }
+
         var nws = MapUrlBuilder.TryBuildNwsRadarUri(_vm.Location);
         if (nws is not null)
-        {
-            var url = nws.AbsoluteUri;
-            frames.Add(new RadarFrame(RadarFrameKind.NwsRegional, url, "Regional view"));
-            frames.Add(new RadarFrame(RadarFrameKind.NwsZoomed, url, "Local zoom"));
-        }
+            frames.Add(new RadarFrame(RadarFrameKind.NwsZoomed, nws.AbsoluteUri, "Local zoom"));
 
         var n = 1;
         foreach (var url in _vm.Location.CustomRadarImageUrls)
@@ -467,6 +554,13 @@ public sealed partial class LocationWeatherView : UserControl
             if (frame.Kind == RadarFrameKind.NwsZoomed)
                 await EnsureRadarSiteCoordinatesAsync().ConfigureAwait(true);
 
+            if (frame.BaseMapUrl is { } baseMapUrl
+                && !string.Equals(_loadedBaseMapUrl, baseMapUrl, StringComparison.OrdinalIgnoreCase))
+            {
+                RadarBaseMapImage.Source = new BitmapImage(new Uri(baseMapUrl));
+                _loadedBaseMapUrl = baseMapUrl;
+            }
+
             if (!string.Equals(_loadedRadarUrl, frame.ImageUrl, StringComparison.OrdinalIgnoreCase))
             {
                 var url = AppendCacheBuster(new Uri(frame.ImageUrl));
@@ -479,6 +573,8 @@ public sealed partial class LocationWeatherView : UserControl
         catch
         {
             MapRasterImage.Visibility = Visibility.Collapsed;
+            RadarBaseMapImage.Visibility = Visibility.Collapsed;
+            RadarLocationDot.Visibility = Visibility.Collapsed;
             RadarPlaceholder.Visibility = Visibility.Visible;
         }
     }
@@ -487,6 +583,16 @@ public sealed partial class LocationWeatherView : UserControl
     {
         if (!_radarAvailable || MapRasterImage.Source is null)
             return;
+
+        MapRasterImage.Visibility = Visibility.Visible;
+        RadarPlaceholder.Visibility = Visibility.Collapsed;
+        RadarBaseMapImage.Visibility = frame.BaseMapUrl is not null ? Visibility.Visible : Visibility.Collapsed;
+        RadarLocationDot.Visibility = frame.Kind switch
+        {
+            RadarFrameKind.NwsRegional => Visibility.Visible,
+            RadarFrameKind.NwsZoomed when HasRadarSiteCoordinates => Visibility.Visible,
+            _ => Visibility.Collapsed,
+        };
 
         if (frame.Kind == RadarFrameKind.NwsZoomed)
         {
@@ -539,20 +645,20 @@ public sealed partial class LocationWeatherView : UserControl
         RadarViewHint.Text = frame.Hint;
     }
 
+    private bool HasRadarSiteCoordinates =>
+        _radarSiteLat is double lat && _radarSiteLon is double lon && IsPlausibleRadarCoordinate(lat, lon);
+
     private (double X, double Y) ResolveZoomSourcePixels(int pw, int ph)
     {
-        if (_vm is not null
-            && _radarSiteLat is double rLat
-            && _radarSiteLon is double rLon
-            && IsPlausibleRadarCoordinate(rLat, rLon))
+        if (_vm is not null && HasRadarSiteCoordinates)
         {
             return NwsRadarLocalZoom.FocusInSourcePixels(
                 pw,
                 ph,
                 _vm.Location.Latitude,
                 _vm.Location.Longitude,
-                rLat,
-                rLon);
+                _radarSiteLat!.Value,
+                _radarSiteLon!.Value);
         }
 
         // Without site coords we can only center the radar disk (not the zip).
