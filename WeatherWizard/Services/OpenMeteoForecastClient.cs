@@ -196,6 +196,7 @@ public sealed class OpenMeteoForecastClient(HttpClientFactory http, OpenMeteoAir
         {
             panel = panel with
             {
+                Row4Right = WeatherCodeInterpreter.Short(panel.WeatherCode, isNight),
                 ConditionEmoji = WeatherCodeInterpreter.Emoji(panel.WeatherCode, isNight, nowTime),
                 ObservationTime = nowTime,
                 SunriseToday = sunriseToday,

@@ -70,5 +70,5 @@ public sealed class ForecastDayItem
 
     /// <summary>Legacy compact line (e.g. logging / diagnostics).</summary>
     public string CompactLine =>
-        $"{PeriodTitle}  {ConditionEmoji}  {HiLoDisplay}  {WeatherCodeInterpreter.Short(WeatherCode)}  {PrecipPercentDisplay}";
+        $"{PeriodTitle}  {ConditionEmoji}  {HiLoDisplay}  {WeatherCodeInterpreter.Short(WeatherCode, IsNightPeriod)}  {PrecipPercentDisplay}";
 }

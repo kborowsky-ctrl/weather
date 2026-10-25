@@ -36,11 +36,14 @@ public static class WeatherCodeInterpreter
         _ => "Conditions",
     };
 
-    /// <summary>Short label for compact one-line forecast.</summary>
-    public static string Short(int code) => code switch
+    /// <summary>Short label for compact one-line forecast (daytime wording).</summary>
+    public static string Short(int code) => Short(code, isNight: false);
+
+    /// <summary>Short label; clear-sky codes use "Clear" / "Mostly clear" after sunset instead of "Sunny".</summary>
+    public static string Short(int code, bool isNight) => code switch
     {
-        0 => "Sunny",
-        1 => "Mostly sunny",
+        0 => isNight ? "Clear" : "Sunny",
+        1 => isNight ? "Mostly clear" : "Mostly sunny",
         2 => "Partly cloudy",
         3 => "Cloudy",
         45 or 48 => "Fog",
